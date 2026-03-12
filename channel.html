@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Channel — ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="View ASTUBE creator channel — videos, subscribers, bio, and more."/>
+  <meta name="keywords" content="ASTUBE channel, creator, videos, subscribers, ASTUBE profile"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/channel.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="ASTUBE Channel"/>
+  <meta property="og:description" content="View creator channels on ASTUBE."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/channel.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="ASTUBE Channel"/>
+  <meta name="twitter:description" content="View creator channels on ASTUBE."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#00c864"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.channel-wrap { max-width: 900px; margin: 0 auto; }
+.channel-videos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px; padding: 12px 12px calc(var(--nh, 56px) + 24px);
+}
+@media(min-width: 600px) {
+  .channel-videos-grid { grid-template-columns: repeat(2,1fr); gap:16px; padding:16px 16px calc(var(--nh,56px)+24px); }
+}
+@media(min-width: 900px) {
+  .channel-videos-grid { grid-template-columns: repeat(3,1fr); padding-bottom:32px; }
+}
+.channel-empty {
+  text-align: center; padding: 60px 20px; color: var(--text2);
+}
+.channel-empty svg { width:48px; height:48px; margin-bottom:12px; opacity:.4; }
+.own-channel-hint {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px 16px; margin: 12px 16px 0;
+  font-size: 13px; color: var(--text2); display: none;
+}
+.own-channel-hint a { color: var(--green); }
+
+/* ── Cover photo banner ─────────────────────────────────────────── */
+.channel-banner {
+  height: 160px;
+  background: linear-gradient(135deg,#0a2a1a,#001a0a,#0a0a0a);
+  border-radius: 0; position: relative; overflow: hidden;
+}
+.channel-banner.has-cover { background: none; }
+.channel-banner-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.channel-banner::after {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse at 30% 60%, rgba(0,200,100,.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+.channel-banner.has-cover::after { background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,.5)); }
+
+/* ── Bio / About section ─────────────────────────────────────────── */
+.about-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px;
+}
+.about-joined {
+  font-size: 13px; color: var(--text2); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 7px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.bio-text {
+  font-size: 14px; line-height: 1.8; color: var(--text);
+  white-space: pre-wrap; word-break: break-word; min-height: 24px;
+}
+.bio-text a {
+  color: var(--green); text-decoration: none; word-break: break-all;
+}
+.bio-text a:hover { text-decoration: underline; }
+.bio-empty {
+  font-size: 14px; color: var(--text2); font-style: italic;
+}
+
+/* ── Platform links section ──────────────────────────────────────── */
+.platform-links {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px;
+  padding-top: 16px; border-top: 1px solid var(--border);
+}
+.platform-links:empty { display: none; }
+.platform-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 20px;
+  background: var(--surf2); border: 1px solid var(--border);
+  color: var(--text); font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: all .2s; white-space: nowrap;
+}
+.platform-link:hover { background: var(--surf); border-color: var(--green); transform: translateY(-1px); }
+.platform-link i { font-size: 15px; }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-right" style="margin-left:auto">
+    <div class="backend-status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text"></span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sign In
+    </button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<main class="main" style="padding-top:56px">
+  <div class="channel-wrap">
+
+    <!-- Banner (dynamic cover photo) -->
+    <div class="channel-banner" id="ch-banner">
+      <img class="channel-banner-img" id="ch-banner-img" src="" alt="" style="display:none"/>
+    </div>
+
+    <!-- Header -->
+    <div class="channel-header">
+      <div class="channel-info-row">
+        <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <div class="channel-avatar-wrap">
+            <div class="channel-avatar" id="ch-avatar">?</div>
+          </div>
+          <div style="padding-bottom:6px">
+            <div class="channel-name" id="ch-name">Loading…</div>
+            <div class="channel-username" id="ch-username"></div>
+            <div class="channel-meta">
+              <span><b id="sub-count-display">0</b> subscribers</span>
+              <span id="ch-video-count">0 videos</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding-bottom:6px">
+          <button class="sub-btn" id="sub-btn" style="display:none">Subscribe</button>
+          <button class="btn btn-outline" id="edit-profile-btn" style="display:none"
+                  onclick="location.href='profile.html'">Edit Profile</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Own channel hint -->
+    <div class="own-channel-hint" id="own-hint">
+      This is your channel! <a href="add-video.html">Add a video</a> or <a href="profile.html">edit your profile</a>.
+    </div>
+
+    <!-- Tabs -->
+    <div class="channel-tabs">
+      <div class="channel-tab active" onclick="switchTab('videos',this)"><i class="fas fa-video"></i> Videos</div>
+      <div class="channel-tab" onclick="switchTab('about',this)"><i class="fas fa-info-circle"></i> About</div>
+    </div>
+
+    <!-- Videos tab -->
+    <div id="tab-videos">
+      <div class="channel-videos-grid" id="ch-grid">
+        <!-- skeleton -->
+        <div class="video-card"><div class="card-thumb skel-box"></div><div class="card-info"><div class="card-avatar skel-box" style="border-radius:50%"></div><div class="card-meta" style="flex:1"><div class="skel-box" style="height:14px;width:88%;margin-bottom:6px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:55%;border-radius:4px"></div></div></div></div>
+        <div class="video-card"><div class="card-thumb skel-box"></div><div class="card-info"><div class="card-avatar skel-box" style="border-radius:50%"></div><div class="card-meta" style="flex:1"><div class="skel-box" style="height:14px;width:88%;margin-bottom:6px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:55%;border-radius:4px"></div></div></div></div>
+      </div>
+    </div>
+
+    <!-- About tab -->
+    <div id="tab-about" style="display:none; padding:16px">
+      <div class="about-card">
+        <div class="about-joined" id="ch-joined">
+          <i class="fas fa-calendar-alt" style="color:var(--text2)"></i>
+        </div>
+        <div class="bio-text" id="ch-bio">No bio yet.</div>
+        <div class="platform-links" id="ch-platform-links"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<nav class="bnav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<!-- Edit Video Modal -->
+<div id="edit-modal" style="display:none">
+  <div class="edit-modal-overlay">
+    <div class="edit-modal-box">
+      <h3>Edit Video</h3>
+      <div class="edit-field">
+        <label>Title</label>
+        <input type="text" id="edit-title" placeholder="Video title" maxlength="100"/>
+      </div>
+      <div class="edit-field">
+        <label>Category</label>
+        <select id="edit-category">
+          <option value="trending">Trending</option>
+          <option value="music">Music</option>
+          <option value="gaming">Gaming</option>
+          <option value="news">News</option>
+          <option value="sports">Sports</option>
+          <option value="education">Education</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="technology">Technology</option>
+          <option value="islam">Islam</option>
+          <option value="pir_naseer">Pir Naseer</option>
+        </select>
+      </div>
+      <div class="edit-modal-btns">
+        <button class="btn-cancel-edit" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-save" onclick="saveEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const params   = new URLSearchParams(location.search);
+const uid      = params.get('uid');
+let channelUid = uid;
+let allVideos  = [];
+let _editVideoId = null;
+
+if (!uid) { location.href = 'index.html'; }
+
+async function init() {
+  const user = await getUserData(uid);
+  if (!user) {
+    document.getElementById('ch-name').textContent = 'Channel not found';
+    return;
+  }
+
+  // Avatar
+  const avEl    = document.getElementById('ch-avatar');
+  const initial = (user.name || '?').charAt(0).toUpperCase();
+  if (user.photoUrl) {
+    const img    = document.createElement('img');
+    img.src      = user.photoUrl;
+    img.alt      = '';
+    img.onerror  = () => { avEl.innerHTML = ''; avEl.textContent = initial; };
+    avEl.innerHTML = '';
+    avEl.appendChild(img);
+  } else {
+    avEl.textContent = initial;
+  }
+
+  document.getElementById('ch-name').textContent     = user.name || 'Unknown';
+  document.getElementById('ch-username').textContent  = user.username || '';
+  // Cover photo
+  if (user.coverUrl) {
+    const banner = document.getElementById('ch-banner');
+    const bImg   = document.getElementById('ch-banner-img');
+    banner.classList.add('has-cover');
+    bImg.style.display = 'block';
+    bImg.src = user.coverUrl;
+    bImg.onerror = () => { bImg.style.display = 'none'; banner.classList.remove('has-cover'); };
+  }
+
+  // Bio with clickable links
+  const bioEl = document.getElementById('ch-bio');
+  if (user.bio && user.bio.trim()) {
+    bioEl.innerHTML = parseBioLinks(user.bio);
+    bioEl.className = 'bio-text';
+  } else {
+    bioEl.innerHTML = '<span class="bio-empty">No bio yet.</span>';
+    bioEl.className = 'bio-text';
+  }
+
+  // Platform links extracted from bio
+  const plEl = document.getElementById('ch-platform-links');
+  if (plEl) plEl.innerHTML = user.bio ? extractPlatformLinks(user.bio) : '';
+
+  // Joined date
+  const joinedEl = document.getElementById('ch-joined');
+  if (joinedEl) {
+    joinedEl.innerHTML = user.createdAt
+      ? `<i class="fas fa-calendar-alt"></i> Joined ${new Date(user.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'long'})}`
+      : `<i class="fas fa-user"></i> ASTUBE member`;
+  }
+  document.title = (user.name || 'Channel') + ' — ASTUBE';
+
+  // Subscriber count
+  const n = await getSubCount(uid);
+  const countEl = document.getElementById('sub-count-display');
+  countEl.textContent = formatSubs(n);
+  if (n >= 1000) countEl.title = n.toLocaleString() + ' subscribers';
+
+  // Is this the viewer's own channel?
+  const viewer = auth.currentUser;
+  const isOwn  = viewer && viewer.uid === uid;
+
+  if (isOwn) {
+    document.getElementById('edit-profile-btn').style.display = 'inline-flex';
+    document.getElementById('own-hint').style.display = 'block';
+  } else {
+    await initSubBtn(document.getElementById('sub-btn'), uid);
+    document.getElementById('sub-btn').style.display = 'inline-flex';
+  }
+
+  // Load videos
+  await loadChannelVideos(isOwn);
+}
+
+async function loadChannelVideos(isOwn) {
+  const snapAll = await db.ref('videos').once('value');
+  const grid = document.getElementById('ch-grid');
+
+  allVideos = [];
+  if (snapAll.exists()) {
+    snapAll.forEach(c => {
+      const v = c.val();
+      if (v.addedByUid === uid || v.addedBy === uid) {
+        allVideos.push({ id: c.key, ...v });
+      }
+    });
+  }
+
+  if (!allVideos.length) {
+    grid.innerHTML = `<div class="channel-empty" style="grid-column:1/-1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <polygon points="10,7 16,10 10,13" fill="currentColor" stroke="none"/>
+      </svg>
+      <p>No videos yet</p>
+    </div>`;
+    document.getElementById('ch-video-count').textContent = '0 videos';
+    return;
+  }
+
+  allVideos.sort((a,b) => (b.addedAt||0) - (a.addedAt||0));
+  document.getElementById('ch-video-count').textContent = allVideos.length + ' video' + (allVideos.length!==1?'s':'');
+  // Warm photo cache for channel owner
+  if (uid) await warmPhotoCache([uid]);
+  grid.innerHTML = allVideos.map(v => renderVideoCard(v.id, v, { showEdit: isOwn })).join('');
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.channel-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-videos').style.display = tab === 'videos' ? '' : 'none';
+  document.getElementById('tab-about').style.display  = tab === 'about'  ? '' : 'none';
+}
+
+// ── Edit/Delete video ─────────────────────────────────────────────
+function editVideo(videoId) {
+  const v = allVideos.find(x => x.id === videoId);
+  if (!v) return;
+  _editVideoId = videoId;
+  document.getElementById('edit-title').value    = v.title || '';
+  document.getElementById('edit-category').value = v.category || 'entertainment';
+  document.getElementById('edit-modal').style.display = 'block';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+  _editVideoId = null;
+}
+
+async function saveEdit() {
+  if (!_editVideoId) return;
+  const title    = document.getElementById('edit-title').value.trim();
+  const category = document.getElementById('edit-category').value;
+  if (!title) { showToast('Title cannot be empty', 'error'); return; }
+  try {
+    await db.ref(`videos/${_editVideoId}`).update({ title, category });
+    showToast('Video updated!', 'success');
+    closeEditModal();
+    const viewer = auth.currentUser;
+    await loadChannelVideos(viewer && viewer.uid === uid);
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteVideo(videoId) {
+  if (!confirm('Delete this video? This cannot be undone.')) return;
+  try {
+    await db.ref(`videos/${videoId}`).remove();
+    showToast('Video deleted', 'info');
+    const viewer = auth.currentUser;
+    await loadChannelVideos(viewer && viewer.uid === uid);
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+
+// ================================================================
+// BIO LINK PARSER + PLATFORM DETECTOR
+// ================================================================
+
+const PLATFORMS = [
+  { name: 'YouTube',    icon: 'fab fa-youtube',    color: '#ff0000', patterns: ['youtube.com','youtu.be'] },
+  { name: 'Instagram',  icon: 'fab fa-instagram',  color: '#e1306c', patterns: ['instagram.com','instagr.am'] },
+  { name: 'Twitter',    icon: 'fab fa-x-twitter',  color: '#000000', patterns: ['twitter.com','x.com'] },
+  { name: 'TikTok',     icon: 'fab fa-tiktok',     color: '#010101', patterns: ['tiktok.com'] },
+  { name: 'Facebook',   icon: 'fab fa-facebook',   color: '#1877f2', patterns: ['facebook.com','fb.com','fb.me'] },
+  { name: 'Snapchat',   icon: 'fab fa-snapchat',   color: '#fffc00', patterns: ['snapchat.com'] },
+  { name: 'LinkedIn',   icon: 'fab fa-linkedin',   color: '#0a66c2', patterns: ['linkedin.com'] },
+  { name: 'GitHub',     icon: 'fab fa-github',     color: '#ffffff', patterns: ['github.com'] },
+  { name: 'Discord',    icon: 'fab fa-discord',    color: '#5865f2', patterns: ['discord.gg','discord.com'] },
+  { name: 'Telegram',   icon: 'fab fa-telegram',   color: '#229ed9', patterns: ['t.me','telegram.me','telegram.org'] },
+  { name: 'WhatsApp',   icon: 'fab fa-whatsapp',   color: '#25d366', patterns: ['wa.me','whatsapp.com'] },
+  { name: 'Twitch',     icon: 'fab fa-twitch',     color: '#9147ff', patterns: ['twitch.tv'] },
+  { name: 'Reddit',     icon: 'fab fa-reddit',     color: '#ff4500', patterns: ['reddit.com'] },
+  { name: 'Pinterest',  icon: 'fab fa-pinterest',  color: '#e60023', patterns: ['pinterest.com'] },
+  { name: 'Spotify',    icon: 'fab fa-spotify',    color: '#1db954', patterns: ['spotify.com','open.spotify.com'] },
+  { name: 'SoundCloud', icon: 'fab fa-soundcloud', color: '#ff5500', patterns: ['soundcloud.com'] },
+  { name: 'Patreon',    icon: 'fab fa-patreon',    color: '#ff424d', patterns: ['patreon.com'] },
+  { name: 'Rumble',     icon: 'fas fa-play-circle',color: '#85c742', patterns: ['rumble.com'] },
+  { name: 'Website',    icon: 'fas fa-globe',      color: '#00c864', patterns: [] }, // fallback
+];
+
+function detectPlatform(url) {
+  try {
+    const host = new URL(url).hostname.replace('www.','');
+    for (const p of PLATFORMS) {
+      if (p.patterns.length && p.patterns.some(pat => host === pat || host.endsWith('.' + pat))) {
+        return p;
+      }
+    }
+  } catch(e) {}
+  return PLATFORMS[PLATFORMS.length - 1]; // Website fallback
+}
+
+// Safely escape HTML special chars
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Parse bio: split on URLs, escape plain text, wrap URLs in <a>
+function parseBioLinks(bio) {
+  if (!bio) return '';
+  const urlRegex = /(https?:\/\/[^\s<>"'\u0000-\u001f]+)/g;
+  const parts    = bio.split(urlRegex);
+  return parts.map((part, i) => {
+    // Every odd index is a URL match from the capture group
+    if (i % 2 === 1) {
+      // Strip trailing punctuation that's likely not part of the URL
+      const clean = part.replace(/[.,;:!?)]+$/, '');
+      const trail = part.slice(clean.length);
+      return `<a href="${escHtml(clean)}" target="_blank" rel="noopener noreferrer">${escHtml(clean)}</a>${escHtml(trail)}`;
+    }
+    return escHtml(part);
+  }).join('');
+}
+
+// Extract unique URLs from bio → render as branded platform chips
+function extractPlatformLinks(bio) {
+  if (!bio) return '';
+  const urlRegex = /(https?:\/\/[^\s<>"'\u0000-\u001f]+)/g;
+  const raw      = bio.match(urlRegex) || [];
+  // Deduplicate, strip trailing punctuation
+  const unique   = [...new Set(raw.map(u => u.replace(/[.,;:!?)]+$/, '')))];
+  if (!unique.length) return '';
+
+  return unique.map(url => {
+    const p = detectPlatform(url);
+    return `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer" class="platform-link">
+      <i class="${p.icon}" style="color:${p.color}"></i>${p.name}
+    </a>`;
+  }).join('');
+}
+
+const _unsubInit = auth.onAuthStateChanged(() => { _unsubInit(); init(); });
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

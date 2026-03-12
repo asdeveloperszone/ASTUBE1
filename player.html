@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ASTUBE Player</title>
+  <!-- SEO -->
+  <meta name="description" content="Watch videos on ASTUBE — fast, ad-free video playback with quality selection, comments, and likes."/>
+  <meta name="keywords" content="ASTUBE player, watch video, video playback, stream video, ASTUBE"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/player.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="Watch on ASTUBE"/>
+  <meta property="og:description" content="Fast, ad-free video playback on ASTUBE."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/player.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="Watch on ASTUBE"/>
+  <meta name="twitter:description" content="Fast, ad-free video playback on ASTUBE."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ASTUBE"/>
+<meta name="theme-color" content="#00c851"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+/* ── Layout ───────────────────────────────────────────────────── */
+.player-page{display:flex;flex-direction:column}
+@media(min-width:1024px){.player-page{flex-direction:row;gap:24px;padding:16px}}
+.player-main{flex:1;min-width:0}
+.player-side{width:100%;padding:0 16px 16px}
+@media(min-width:1024px){.player-side{width:380px;flex-shrink:0;padding:0}}
+
+/* ── Player Wrapper ───────────────────────────────────────────── */
+.player-wrap{
+  position:relative;width:100%;background:#000;aspect-ratio:16/9;
+  user-select:none;-webkit-user-select:none;
+}
+@media(min-width:1024px){.player-wrap{border-radius:var(--r);overflow:hidden}}
+video{width:100%;height:100%;display:block;background:#000}
+
+/* ── Overlay States ───────────────────────────────────────────── */
+.player-loading{
+  position:absolute;inset:0;background:rgba(0,0,0,.85);
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;z-index:20;
+}
+.player-loading p{color:var(--text2);font-size:13px;text-align:center;padding:0 16px}
+
+.player-error{
+  position:absolute;inset:0;background:rgba(0,0,0,.92);
+  display:none;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;z-index:20;padding:24px;text-align:center;
+}
+.player-error svg{color:var(--red);width:44px;height:44px}
+.player-error p{color:var(--text2);font-size:14px;max-width:300px;white-space:pre-line}
+.player-error .err-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+
+/* ── Seek Flash Overlay ───────────────────────────────────────── */
+.seek-flash{
+  position:absolute;top:0;bottom:0;width:38%;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:18;opacity:0;transition:opacity .2s;
+}
+.seek-flash.left{left:0;background:radial-gradient(ellipse at 25% 50%,rgba(255,255,255,.15) 0%,transparent 70%)}
+.seek-flash.right{right:0;background:radial-gradient(ellipse at 75% 50%,rgba(255,255,255,.15) 0%,transparent 70%)}
+.seek-flash.show{opacity:1}
+.seek-flash-inner{
+  background:rgba(0,0,0,.6);border-radius:50%;
+  width:60px;height:60px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.15);
+}
+.seek-flash-inner svg{width:22px;height:22px;color:#fff}
+.seek-flash-inner span{font-size:9px;color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.04em}
+
+/* ── Controls ─────────────────────────────────────────────────── */
+.controls{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.75) 30%,rgba(0,0,0,.95));
+  padding:0 10px 8px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s;
+  z-index:15;
+}
+/* Controls only show when force-show is active — all via JS, no CSS hover tricks */
+.controls.force-show{
+  opacity:1;
+  pointer-events:all;
+}
+.ctrl-title-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 2px 8px;
+}
+.ctrl-title-text{
+  font-size:14px;font-weight:600;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex:1;min-width:0;
+  text-shadow:0 1px 4px rgba(0,0,0,.7);
+  letter-spacing:.01em;
+}
+/* Timestamps row — sits between title and progress bar */
+.ctrl-timestamps{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 2px 4px;
+}
+.ctrl-ts{
+  font-size:12px;font-weight:700;color:rgba(255,255,255,.9);
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  text-shadow:0 1px 3px rgba(0,0,0,.7);
+}
+.ctrl-ts-cur{color:#fff}
+.ctrl-ts-total{color:rgba(255,255,255,.6)}
+.ctrl-ts-sep{color:rgba(255,255,255,.35);margin:0 1px;font-weight:400}
+/* (visibility is handled entirely by .controls.force-show via JS) */
+
+/* Progress bar */
+.progress-bar{
+  position:relative;cursor:pointer;
+  margin-bottom:10px;touch-action:none;
+  /* Tall invisible hit-area so mobile fingers grab it easily */
+  padding:10px 0;
+}
+/* The visible track lives inside ::before so the hit-area stays tall */
+.progress-bar::before{
+  content:'';position:absolute;left:0;right:0;
+  top:50%;transform:translateY(-50%);
+  height:4px;background:rgba(255,255,255,.25);
+  border-radius:2px;transition:height .15s;
+}
+.progress-bar:hover::before,
+.progress-bar.dragging::before{height:7px}
+.progress-buf{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  height:4px;background:rgba(255,255,255,.35);
+  border-radius:2px;pointer-events:none;transition:height .15s;
+}
+.progress-bar:hover .progress-buf,
+.progress-bar.dragging .progress-buf{height:7px}
+.progress-fill{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  height:4px;background:var(--red);
+  border-radius:2px;pointer-events:none;transition:height .15s;
+}
+.progress-bar:hover .progress-fill,
+.progress-bar.dragging .progress-fill{height:7px}
+.progress-thumb{
+  position:absolute;top:50%;
+  width:14px;height:14px;
+  background:#fff;border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  opacity:0;transition:opacity .15s,width .1s,height .1s,box-shadow .1s;
+}
+.progress-bar:hover .progress-thumb,
+.progress-bar.dragging .progress-thumb{opacity:1}
+.progress-bar.dragging .progress-thumb{width:18px;height:18px;box-shadow:0 0 0 5px rgba(255,80,80,.22)}
+.progress-tip{
+  position:absolute;bottom:32px;
+  background:rgba(10,10,10,.92);color:#fff;
+  font-size:12px;font-weight:700;letter-spacing:.02em;
+  padding:4px 10px;border-radius:5px;
+  pointer-events:none;transform:translateX(-50%);
+  white-space:nowrap;display:none;
+  box-shadow:0 2px 10px rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+/* Control row */
+.ctrl-row{display:flex;align-items:center;gap:2px}
+.ctrl-btn{background:none;border:none;color:#fff;padding:6px;border-radius:4px;display:flex;align-items:center;cursor:pointer;transition:background .15s;flex-shrink:0}
+.ctrl-btn:hover{background:rgba(255,255,255,.15)}
+.ctrl-btn svg{width:20px;height:20px}
+.time-disp{font-size:12px;color:#fff;margin:0 4px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Volume */
+.vol-wrap{display:flex;align-items:center;gap:2px}
+.vol-slider-wrap{width:0;overflow:hidden;transition:width .2s}
+.vol-wrap:hover .vol-slider-wrap{width:60px}
+input[type=range].vol-inp{width:60px;height:4px;-webkit-appearance:none;background:rgba(255,255,255,.4);border-radius:2px;outline:none;cursor:pointer}
+input[type=range].vol-inp::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#fff;border-radius:50%}
+
+/* Speed */
+.speed-wrap{position:relative}
+.speed-btn{font-size:13px;font-weight:600;padding:4px 8px;letter-spacing:.02em}
+.speed-menu{position:absolute;bottom:38px;right:0;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);display:none;min-width:75px;z-index:40;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+.speed-menu.open{display:block}
+.speed-opt{display:block;width:100%;padding:8px 14px;font-size:13px;cursor:pointer;background:none;border:none;color:var(--text);text-align:left;transition:background .15s}
+.speed-opt:hover{background:var(--surf)}
+.speed-opt.active{color:var(--red);font-weight:700}
+
+/* ── Quality Selector ─────────────────────────────────────────── */
+.quality-wrap{position:relative}
+.quality-btn{
+  font-size:11px;font-weight:700;padding:4px 8px;
+  border:1px solid rgba(255,255,255,.3);border-radius:4px;
+  letter-spacing:.04em;min-width:40px;justify-content:center;
+  gap:3px;
+}
+.quality-btn svg{width:14px;height:14px;opacity:.8}
+.quality-menu{
+  position:absolute;bottom:44px;right:0;
+  background:#1a1a1a;border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;display:none;min-width:160px;z-index:40;
+  overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.7);
+}
+.quality-menu.open{display:block}
+.quality-menu-hdr{
+  padding:10px 14px 7px;font-size:11px;font-weight:700;
+  color:rgba(255,255,255,.4);letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:6px;
+}
+.quality-loading{
+  padding:14px;text-align:center;
+  color:rgba(255,255,255,.5);font-size:12px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.quality-opt{
+  display:flex;align-items:center;
+  width:100%;padding:10px 14px;font-size:13px;cursor:pointer;
+  background:none;border:none;color:#e0e0e0;text-align:left;
+  transition:background .15s;gap:0;
+}
+.quality-opt:hover{background:rgba(255,255,255,.08)}
+.quality-opt.active{color:#fff;font-weight:700;background:rgba(255,0,0,.12)}
+.quality-opt-check{width:18px;flex-shrink:0;color:var(--red);font-size:14px}
+.quality-opt-label{flex:1;font-weight:600}
+.quality-opt-note{font-size:11px;color:rgba(255,255,255,.35);flex-shrink:0;margin-left:6px}
+.quality-opt.active .quality-opt-note{color:rgba(255,80,80,.6)}
+
+/* ── Controls visibility logic ────────────────────────────────── */
+/* Everything controlled via .controls.force-show (JS only) */
+/* Cursor hides in fullscreen when controls are hidden */
+:fullscreen .player-wrap:not(.force-ctrl) { cursor: none; }
+:-webkit-full-screen .player-wrap:not(.force-ctrl) { cursor: none; }
+
+/* ── Landscape mode class (applied by JS) ─────────────────────── */
+.player-wrap.landscape-mode .controls { z-index: 10000; }
+
+/* ── Rotate Button (mobile only) ─────────────────────────────── */
+.rotate-btn { display: none !important; }
+@media(max-width: 767px) { .rotate-btn { display: flex !important; } }
+.rotate-btn.rotated { color: #4caf50; }
+
+
+/* ── Video Info ───────────────────────────────────────────────── */
+.video-info{padding:12px 16px 8px}
+@media(min-width:1024px){.video-info{padding:12px 0 8px}}
+.v-title{font-size:18px;font-weight:700;line-height:1.4;margin-bottom:8px}
+.v-actions{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.v-meta{display:flex;align-items:center;gap:12px;color:var(--text2);font-size:13px;flex-wrap:wrap;margin-bottom:12px}
+.v-div{height:1px;background:var(--border);margin:12px 0}
+.v-uploader{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.v-up-av{width:44px;height:44px;border-radius:50%;background:var(--red);color:#fff;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.v-up-av img{width:100%;height:100%;object-fit:cover}
+.v-up-name{font-size:15px;font-weight:600;line-height:1.2}
+.v-up-sub{font-size:12px;color:var(--text2)}
+.v-desc{font-size:14px;color:var(--text2);line-height:1.6;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.v-desc.expanded{display:block}
+.v-desc-btn{background:none;border:none;color:var(--text);font-size:13px;font-weight:500;padding:6px 0;cursor:pointer}
+
+/* ── Like & Share action bar ──────────────────────────────────────── */
+.v-action-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.like-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border-radius: 24px;
+  border: 1.5px solid var(--border);
+  background: var(--surf); color: var(--text2);
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: all .2s; user-select: none; -webkit-user-select: none;
+}
+.like-btn i { font-size: 16px; transition: transform .2s; }
+.like-btn:hover:not(.loading) { border-color: var(--green); color: var(--green); background: rgba(0,200,100,.06); }
+.like-btn.liked { border-color: var(--green); background: rgba(0,200,100,.12); color: var(--green); }
+.like-btn.liked i { transform: scale(1.2); }
+.like-btn.loading { opacity: .6; pointer-events: none; }
+.like-btn .like-count {
+  background: var(--surf2); border-radius: 12px;
+  padding: 2px 8px; font-size: 12px; font-weight: 800;
+  min-width: 22px; text-align: center; transition: all .2s;
+}
+.like-btn.liked .like-count { background: rgba(0,200,100,.18); color: var(--green); }
+.share-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 24px;
+  border: 1.5px solid var(--border);
+  background: var(--surf); color: var(--text2);
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.share-btn:hover { border-color: #3ea6ff; color: #3ea6ff; background: rgba(62,166,255,.06); }
+.share-wrap { position: relative; }
+.share-menu {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 14px; min-width: 230px; z-index: 50;
+  display: none; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,.55);
+}
+.share-menu.open { display: block; }
+.share-menu-hdr {
+  padding: 12px 16px 8px; font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; color: var(--text2); text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.share-opt {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 11px 16px;
+  background: none; border: none; color: var(--text);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .15s; text-align: left; text-decoration: none;
+}
+.share-opt:hover { background: var(--surf2); }
+.share-opt-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.share-copied {
+  padding: 10px 16px 12px; font-size: 12px; color: var(--green);
+  font-weight: 600; display: none; align-items: center; gap: 6px;
+  border-top: 1px solid var(--border); background: rgba(0,200,100,.05);
+}
+.share-copied.show { display: flex; }
+
+/* ── Comment button ───────────────────────────────────────────────── */
+.comment-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 24px;
+  border: 1.5px solid var(--border);
+  background: var(--surf); color: var(--text2);
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.comment-btn:hover { border-color: var(--green); color: var(--green); background: rgba(0,200,100,.06); }
+.comment-btn.active { border-color: var(--green); background: rgba(0,200,100,.1); color: var(--green); }
+.comment-btn .cmt-count {
+  background: var(--surf2); border-radius: 12px;
+  padding: 2px 8px; font-size: 12px; font-weight: 800;
+  min-width: 22px; text-align: center; transition: all .2s;
+}
+.comment-btn.active .cmt-count { background: rgba(0,200,100,.18); color: var(--green); }
+
+/* ── Download button ──────────────────────────────────────────────── */
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 24px;
+  border: 1.5px solid var(--border);
+  background: var(--surf); color: var(--text2);
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s;
+  position: relative; overflow: hidden;
+}
+.dl-btn:hover:not(.dl-busy) { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,.06); }
+.dl-btn.dl-busy { opacity: .7; pointer-events: none; }
+
+/* Progress bar that fills across the button */
+.dl-btn .dl-progress {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: rgba(167,139,250,.18);
+  width: 0%; transition: width .3s ease;
+  border-radius: 24px; pointer-events: none;
+}
+
+/* ── Download toast overlay ───────────────────────────────────────── */
+#dl-toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surf2); border: 1px solid rgba(167,139,250,.4);
+  color: var(--text); border-radius: 14px;
+  padding: 14px 20px; min-width: 260px; max-width: 340px;
+  display: none; align-items: center; gap: 12px;
+  z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  opacity: 0; transition: opacity .25s, transform .25s;
+}
+#dl-toast.show {
+  display: flex; opacity: 1; transform: translateX(-50%) translateY(0);
+}
+#dl-toast .dl-toast-icon {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(167,139,250,.15);
+  display: flex; align-items: center; justify-content: center;
+  color: #a78bfa; font-size: 16px;
+}
+#dl-toast .dl-toast-text { flex: 1; min-width: 0; }
+#dl-toast .dl-toast-title { font-weight: 700; font-size: 13px; }
+#dl-toast .dl-toast-sub { font-size: 11px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dl-toast .dl-bar-wrap {
+  width: 100%; height: 3px; background: var(--border);
+  border-radius: 2px; margin-top: 8px; overflow: hidden;
+}
+#dl-toast .dl-bar {
+  height: 100%; width: 0%; background: #a78bfa;
+  border-radius: 2px; transition: width .35s ease;
+  animation: dlPulse 1.4s ease-in-out infinite;
+}
+@keyframes dlPulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── Download Hint Modal ──────────────────────────────────────────── */
+#dl-hint-modal {
+  position: fixed; inset: 0; z-index: 1000;
+  display: none; align-items: flex-end; justify-content: center;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(3px);
+}
+#dl-hint-modal.show { display: flex; }
+#dl-hint-modal .dl-hint-box {
+  background: var(--surf); border-radius: 20px 20px 0 0;
+  padding: 24px 24px 36px; width: 100%; max-width: 480px;
+  border-top: 1px solid var(--border);
+  animation: dlHintSlide .28s ease;
+}
+@keyframes dlHintSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
+#dl-hint-modal .dl-hint-handle {
+  width: 40px; height: 4px; background: var(--border);
+  border-radius: 2px; margin: 0 auto 20px;
+}
+#dl-hint-modal .dl-hint-title {
+  font-size: 17px; font-weight: 800; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+#dl-hint-modal .dl-hint-title i { color: #a78bfa; }
+#dl-hint-modal .dl-hint-sub {
+  font-size: 13px; color: var(--text2); margin-bottom: 20px;
+}
+#dl-hint-modal .dl-hint-steps {
+  display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px;
+}
+#dl-hint-modal .dl-hint-step {
+  display: flex; align-items: flex-start; gap: 14px;
+}
+#dl-hint-modal .dl-hint-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(167,139,250,.15); color: #a78bfa;
+  font-size: 13px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+#dl-hint-modal .dl-hint-step-text { font-size: 13px; line-height: 1.5; padding-top: 5px; }
+#dl-hint-modal .dl-hint-step-text b { color: var(--text); }
+#dl-hint-modal .dl-hint-ok {
+  width: 100%; padding: 13px; border-radius: 12px;
+  background: #a78bfa; color: #fff; border: none;
+  font-size: 15px; font-weight: 800; cursor: pointer;
+  transition: opacity .2s;
+}
+#dl-hint-modal .dl-hint-ok:hover { opacity: .88; }
+#dl-hint-modal .dl-hint-skip {
+  width: 100%; padding: 10px; margin-top: 8px;
+  background: none; border: none; color: var(--text2);
+  font-size: 13px; cursor: pointer;
+}
+
+
+.comment-panel {
+  display: none; margin-top: 4px; margin-bottom: 4px;
+  border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--surf); overflow: hidden;
+  animation: cmtSlide .2s ease;
+}
+.comment-panel.open { display: block; }
+@keyframes cmtSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cmt-panel-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.cmt-panel-title {
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.cmt-panel-title i { color: var(--green); font-size: 14px; }
+.cmt-close-btn {
+  background: none; border: none; color: var(--text2);
+  font-size: 18px; cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  transition: color .15s, background .15s; line-height: 1;
+}
+.cmt-close-btn:hover { color: var(--text); background: var(--surf2); }
+
+/* Input row */
+.cmt-input-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--surf);
+}
+.cmt-input-av {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surf2); border: 1px solid var(--border);
+  overflow: hidden; flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; color: var(--text2); font-size: 14px;
+}
+.cmt-input-av img { width: 100%; height: 100%; object-fit: cover; }
+.cmt-input-wrap { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.cmt-textarea {
+  width: 100%; background: var(--surf2); border: 1.5px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px; font-family: inherit;
+  padding: 10px 12px; resize: none; outline: none;
+  transition: border-color .2s; min-height: 40px; max-height: 120px;
+  overflow-y: auto; line-height: 1.5;
+}
+.cmt-textarea:focus { border-color: var(--green); }
+.cmt-textarea::placeholder { color: var(--text2); }
+.cmt-input-actions {
+  display: none; justify-content: flex-end; gap: 8px; align-items: center;
+}
+.cmt-input-actions.show { display: flex; }
+.cmt-cancel-btn {
+  background: none; border: none; color: var(--text2); font-size: 13px;
+  font-weight: 600; padding: 7px 12px; border-radius: 20px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cmt-cancel-btn:hover { background: var(--surf2); color: var(--text); }
+.cmt-submit-btn {
+  background: var(--green); color: #000; border: none;
+  font-size: 13px; font-weight: 700; padding: 7px 16px;
+  border-radius: 20px; cursor: pointer; transition: opacity .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.cmt-submit-btn:disabled { opacity: .45; pointer-events: none; }
+.cmt-submit-btn:hover:not(:disabled) { opacity: .88; }
+
+/* Login nudge (shown when not logged in) */
+.cmt-login-nudge {
+  padding: 18px 16px; text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.cmt-login-nudge p { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+
+/* Comment list */
+.cmt-list { max-height: 420px; overflow-y: auto; padding: 4px 0 8px; }
+.cmt-list::-webkit-scrollbar { width: 4px; }
+.cmt-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.cmt-empty {
+  padding: 32px 16px; text-align: center;
+  color: var(--text2); font-size: 13px;
+}
+.cmt-empty i { font-size: 28px; opacity: .25; display: block; margin-bottom: 8px; }
+
+/* Single comment row */
+.cmt-item {
+  display: flex; gap: 10px; padding: 12px 16px;
+  transition: background .15s;
+}
+.cmt-item:hover { background: rgba(255,255,255,.02); }
+.cmt-av {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surf2); border: 1px solid var(--border);
+  overflow: hidden; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); font-size: 13px; font-weight: 700;
+  text-decoration: none; transition: opacity .15s;
+}
+.cmt-av:hover { opacity: .8; }
+.cmt-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cmt-body { flex: 1; min-width: 0; }
+.cmt-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.cmt-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  cursor: pointer; text-decoration: none;
+  transition: color .15s;
+}
+.cmt-name:hover { color: var(--green); }
+.cmt-time { font-size: 11px; color: var(--text2); }
+.cmt-text { font-size: 13px; color: var(--text2); line-height: 1.55; word-break: break-word; }
+.cmt-del-btn {
+  background: none; border: none; color: var(--text2); font-size: 12px;
+  cursor: pointer; padding: 3px 6px; border-radius: 5px; margin-left: auto;
+  opacity: 0; transition: opacity .15s, color .15s; flex-shrink: 0;
+}
+.cmt-item:hover .cmt-del-btn { opacity: 1; }
+.cmt-del-btn:hover { color: #ff4444; }
+
+/* Loading spinner inside panel */
+.cmt-loading { padding: 24px; text-align: center; color: var(--text2); font-size: 13px; }
+
+.v-meta-row {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 13px; color: var(--text2); margin-bottom: 10px; flex-wrap: wrap;
+}
+.v-likes-inline { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-weight: 700; }
+
+/* ── Related ──────────────────────────────────────────────────── */
+.related-title{font-size:16px;font-weight:700;padding:16px 16px 8px}
+@media(min-width:1024px){.related-title{padding:0 0 8px}}
+.related-list{display:flex;flex-direction:column;gap:8px;padding:0 16px calc(var(--nh) + 32px)}
+@media(min-width:1024px){.related-list{padding:0 0 32px}}
+.rel-card{display:flex;gap:8px;cursor:pointer;border-radius:var(--r);padding:4px;transition:background .15s;align-items:flex-start}
+.rel-card:hover{background:var(--surf2)}
+.rel-thumb{position:relative;width:120px;flex-shrink:0;border-radius:6px;overflow:hidden;aspect-ratio:16/9;background:var(--surf2)}
+.rel-thumb img{width:100%;height:100%;object-fit:cover}
+.rel-dur{position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,.85);color:#fff;font-size:11px;padding:1px 4px;border-radius:3px}
+.rel-info{flex:1;overflow:hidden}
+.rel-title{font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px}
+.rel-ch{font-size:12px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-search">
+    <input id="search-input" type="text" placeholder="Search ASTUBE" autocomplete="off"/>
+    <button class="sbtn" onclick="doSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
+  <div class="hdr-right">
+    <div class="backend-status" title="Backend status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text"></span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Sign In
+    </button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <a href="index.html" class="s-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Video</a>
+  <a href="profile.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<main class="main">
+  <div class="player-page">
+    <div class="player-main">
+
+      <!-- ── Video Player ── -->
+      <div class="player-wrap" id="player-wrap">
+        <video id="vid" preload="auto" playsinline></video>
+
+        <!-- Seek flash - left (rewind) -->
+        <div class="seek-flash left" id="flash-left">
+          <div class="seek-flash-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>
+            </svg>
+            <span>10s</span>
+          </div>
+        </div>
+
+        <!-- Seek flash - right (forward) -->
+        <div class="seek-flash right" id="flash-right">
+          <div class="seek-flash-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M13 7l5 5-5 5M6 7l5 5-5 5"/>
+            </svg>
+            <span>10s</span>
+          </div>
+        </div>
+
+        <div class="player-loading" id="player-loading">
+          <div class="spinner"></div>
+          <p id="loading-msg">Fetching video from server…</p>
+        </div>
+
+        <div class="player-error" id="player-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="currentColor"/>
+          </svg>
+          <p id="player-error-msg">Could not load video</p>
+          <div class="err-actions">
+            <button class="btn btn-red" onclick="retryLoad()">Retry</button>
+            <a id="yt-link" href="#" target="_blank" rel="noopener" class="btn btn-outline">Open on YouTube</a>
+          </div>
+        </div>
+
+        <div class="controls" id="controls">
+
+          <!-- ── Title bar ── -->
+          <div class="ctrl-title-bar">
+            <div class="ctrl-title-text" id="ctrl-title"></div>
+          </div>
+
+          <!-- ── Timestamps ── -->
+          <div class="ctrl-timestamps">
+            <span class="ctrl-ts ctrl-ts-cur" id="ctrl-ts-cur">0:00</span>
+            <span class="ctrl-ts ctrl-ts-sep">/</span>
+            <span class="ctrl-ts ctrl-ts-total" id="ctrl-ts-total">0:00</span>
+          </div>
+
+          <!-- ── Progress bar ── -->
+          <div class="progress-bar" id="progress-bar">
+            <div class="progress-buf"  id="progress-buf"></div>
+            <div class="progress-fill" id="progress-fill"></div>
+            <div class="progress-thumb" id="progress-thumb"></div>
+            <div class="progress-tip"  id="progress-tip"></div>
+          </div>
+
+          <div class="ctrl-row">
+            <!-- Play/Pause -->
+            <button class="ctrl-btn" onclick="togglePlay()" title="Space">
+              <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            </button>
+            <!-- Rewind 10s -->
+            <button class="ctrl-btn" onclick="skipAndFlash(-10)" title="← 10s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <polyline points="1,4 1,10 7,10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+                <text x="8" y="16" font-size="4.5" fill="currentColor" stroke="none" font-weight="bold" font-family="sans-serif">10</text>
+              </svg>
+            </button>
+            <!-- Forward 10s -->
+            <button class="ctrl-btn" onclick="skipAndFlash(10)" title="→ 10s">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <polyline points="23,4 23,10 17,10"/>
+                <path d="M20.49 15a9 9 0 1 1-.49-3.36"/>
+                <text x="8" y="16" font-size="4.5" fill="currentColor" stroke="none" font-weight="bold" font-family="sans-serif">10</text>
+              </svg>
+            </button>
+            <!-- Volume -->
+            <div class="vol-wrap">
+              <button class="ctrl-btn" onclick="toggleMute()" title="M">
+                <svg id="vol-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+              </button>
+              <div class="vol-slider-wrap">
+                <input type="range" class="vol-inp" id="vol-slider" min="0" max="1" step="0.05" value="1" oninput="setVol(this.value)"/>
+              </div>
+            </div>
+
+            <span style="flex:1"></span>
+
+            <!-- ── Quality Selector ── -->
+            <div class="quality-wrap">
+              <button class="ctrl-btn quality-btn" id="quality-btn" onclick="toggleQualityMenu()" title="Quality">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="6" width="20" height="12" rx="2"/>
+                  <path d="M8 12h8M12 9v6"/>
+                </svg>
+                <span id="quality-label">360p</span>
+              </button>
+              <div class="quality-menu" id="quality-menu">
+                <div class="quality-menu-hdr">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                  Quality
+                </div>
+                <div class="quality-loading" id="quality-loading">
+                  <div class="spinner" style="width:13px;height:13px;border-width:2px"></div>
+                  Loading formats…
+                </div>
+              </div>
+            </div>
+
+            <!-- Speed -->
+            <div class="speed-wrap">
+              <button class="ctrl-btn speed-btn" id="speed-btn" onclick="toggleSpeedMenu()">1×</button>
+              <div class="speed-menu" id="speed-menu">
+                <button class="speed-opt" onclick="setSpeed(0.5)">0.5×</button>
+                <button class="speed-opt" onclick="setSpeed(0.75)">0.75×</button>
+                <button class="speed-opt active" onclick="setSpeed(1)">1×</button>
+                <button class="speed-opt" onclick="setSpeed(1.25)">1.25×</button>
+                <button class="speed-opt" onclick="setSpeed(1.5)">1.5×</button>
+                <button class="speed-opt" onclick="setSpeed(2)">2×</button>
+              </div>
+            </div>
+
+            <!-- PiP -->
+            <button class="ctrl-btn" onclick="togglePip()" title="P">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><rect x="12" y="10" width="9" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
+            </button>
+
+            <!-- Rotate (mobile only) -->
+            <button class="ctrl-btn rotate-btn" id="rotate-btn" onclick="toggleRotate()" title="Landscape">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                <path d="M20 7h-9"/><path d="M14 17H5"/>
+                <polyline points="17,4 20,7 17,10"/>
+                <polyline points="8,14 5,17 8,20"/>
+              </svg>
+            </button>
+
+            <!-- Fullscreen -->
+            <button class="ctrl-btn" onclick="toggleFs()" title="F">
+              <svg id="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div><!-- /player-wrap -->
+
+      <!-- ── Video Info ── -->
+      <div class="video-info" id="video-info" style="display:none">
+        <h1 class="v-title" id="v-title"></h1>
+
+        <!-- Views + likes meta row -->
+        <div class="v-meta-row">
+          <span id="v-meta-inline"></span>
+          <span class="v-likes-inline" id="v-likes-meta" style="display:none">
+            <i class="fas fa-thumbs-up"></i>
+            <span id="v-likes-meta-count">0</span> likes
+          </span>
+        </div>
+
+        <!-- Like + Share action bar -->
+        <div class="v-action-bar">
+          <!-- Like button -->
+          <button class="like-btn" id="like-btn" onclick="handleLike()">
+            <i class="fas fa-thumbs-up"></i>
+            Like
+            <span class="like-count" id="like-count">0</span>
+          </button>
+
+          <!-- Comment button -->
+          <button class="comment-btn" id="comment-btn" onclick="toggleComments()">
+            <i class="fas fa-comment"></i>
+            Comments
+            <span class="cmt-count" id="cmt-count">0</span>
+          </button>
+
+          <!-- Download button -->
+          <button class="dl-btn" id="dl-btn" onclick="handleDownload()">
+            <div class="dl-progress" id="dl-progress"></div>
+            <i class="fas fa-download" id="dl-icon"></i>
+            <span id="dl-label">Download</span>
+          </button>
+
+          <!-- Share button + dropdown -->
+          <div class="share-wrap">
+            <button class="share-btn" id="share-btn" onclick="toggleShareMenu()">
+              <i class="fas fa-share-nodes"></i>
+              Share
+            </button>
+            <div class="share-menu" id="share-menu">
+              <div class="share-menu-hdr"><i class="fas fa-share-nodes"></i> Share this video</div>
+
+              <!-- Copy ASTUBE link -->
+              <button class="share-opt" onclick="shareAction('copy-astube')">
+                <span class="share-opt-icon" style="background:rgba(0,200,100,.12);color:var(--green)">
+                  <i class="fas fa-link"></i>
+                </span>
+                Copy ASTUBE Link
+              </button>
+
+              <!-- Copy YouTube link -->
+              <button class="share-opt" onclick="shareAction('copy-yt')">
+                <span class="share-opt-icon" style="background:rgba(255,0,0,.12);color:#ff4444">
+                  <i class="fab fa-youtube"></i>
+                </span>
+                Copy YouTube Link
+              </button>
+
+              <!-- WhatsApp -->
+              <button class="share-opt" onclick="shareAction('whatsapp')">
+                <span class="share-opt-icon" style="background:rgba(37,211,102,.12);color:#25d366">
+                  <i class="fab fa-whatsapp"></i>
+                </span>
+                Share on WhatsApp
+              </button>
+
+              <!-- Telegram -->
+              <button class="share-opt" onclick="shareAction('telegram')">
+                <span class="share-opt-icon" style="background:rgba(34,158,217,.12);color:#229ed9">
+                  <i class="fab fa-telegram"></i>
+                </span>
+                Share on Telegram
+              </button>
+
+              <!-- Twitter/X -->
+              <button class="share-opt" onclick="shareAction('twitter')">
+                <span class="share-opt-icon" style="background:rgba(255,255,255,.08);color:#e7e7e7">
+                  <i class="fab fa-x-twitter"></i>
+                </span>
+                Share on X / Twitter
+              </button>
+
+              <!-- Facebook -->
+              <button class="share-opt" onclick="shareAction('facebook')">
+                <span class="share-opt-icon" style="background:rgba(24,119,242,.12);color:#1877f2">
+                  <i class="fab fa-facebook"></i>
+                </span>
+                Share on Facebook
+              </button>
+
+              <!-- Native share (mobile) -->
+              <button class="share-opt" id="native-share-btn" onclick="shareAction('native')" style="display:none">
+                <span class="share-opt-icon" style="background:rgba(255,255,255,.08);color:var(--text)">
+                  <i class="fas fa-share"></i>
+                </span>
+                More options…
+              </button>
+
+              <!-- Copied indicator -->
+              <div class="share-copied" id="share-copied">
+                <i class="fas fa-check-circle"></i> Copied to clipboard!
+              </div>
+            </div>
+          </div>
+        </div><!-- end v-action-bar -->
+
+        <!-- ── Comment Panel ── -->
+        <div class="comment-panel" id="comment-panel">
+
+          <!-- Header -->
+          <div class="cmt-panel-hdr">
+            <div class="cmt-panel-title">
+              <i class="fas fa-comment"></i>
+              Comments <span id="cmt-panel-count" style="color:var(--text2);font-weight:500;font-size:13px"></span>
+            </div>
+            <button class="cmt-close-btn" onclick="toggleComments()" title="Close">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Input row (shown when logged in) -->
+          <div class="cmt-input-row" id="cmt-input-row" style="display:none">
+            <div class="cmt-input-av" id="cmt-self-av"><i class="fas fa-user"></i></div>
+            <div class="cmt-input-wrap">
+              <textarea class="cmt-textarea" id="cmt-textarea"
+                placeholder="Add a comment…" rows="1"
+                oninput="onCmtInput(this)"
+                onkeydown="onCmtKey(event)"></textarea>
+              <div class="cmt-input-actions" id="cmt-input-actions">
+                <button class="cmt-cancel-btn" onclick="cancelComment()">Cancel</button>
+                <button class="cmt-submit-btn" id="cmt-submit-btn" onclick="submitComment()" disabled>
+                  <i class="fas fa-paper-plane"></i> Post
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Login nudge (shown when not logged in) -->
+          <div class="cmt-login-nudge" id="cmt-login-nudge" style="display:none">
+            <p>Sign in to join the conversation</p>
+            <button class="btn btn-primary" style="font-size:13px;padding:8px 20px"
+              onclick="location.href='login.html?redirect='+encodeURIComponent(location.href)">
+              <i class="fas fa-sign-in-alt"></i> Sign In
+            </button>
+          </div>
+
+          <!-- Comment list -->
+          <div class="cmt-list" id="cmt-list">
+            <div class="cmt-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+          </div>
+
+        </div><!-- end comment-panel -->
+
+        <div class="v-div"></div>
+        <!-- Shows ASTUBE uploader (their profile photo + name), NOT YouTube channel -->
+        <div class="v-uploader" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px;cursor:pointer" id="v-ch-link">
+            <div class="v-up-av" id="v-up-av"></div>
+            <div>
+              <div class="v-up-name" id="v-up-name"></div>
+              <div class="v-up-sub"  id="v-up-sub"></div>
+            </div>
+          </div>
+          <button class="sub-btn" id="player-sub-btn" style="display:none">Subscribe</button>
+        </div>
+        <div class="v-desc" id="v-desc"></div>
+        <button class="v-desc-btn" id="v-desc-btn" onclick="toggleDesc()" style="display:none">Show more</button>
+      </div>
+    </div>
+
+    <!-- ── Sidebar ── -->
+    <div class="player-side" id="player-side" style="display:none">
+      <div class="related-title">Related Videos</div>
+      <div class="related-list" id="related-list"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Download Hint Modal (shown once on first download tap) -->
+<div id="dl-hint-modal">
+  <div class="dl-hint-box">
+    <div class="dl-hint-handle"></div>
+    <div class="dl-hint-title"><i class="fas fa-download"></i> How to Download</div>
+    <div class="dl-hint-sub">Video opens in a new tab — here's how to save it</div>
+    <div class="dl-hint-steps">
+      <div class="dl-hint-step">
+        <div class="dl-hint-num">1</div>
+        <div class="dl-hint-step-text">Tap <b>Got it</b> — a new tab opens with the video playing</div>
+      </div>
+      <div class="dl-hint-step">
+        <div class="dl-hint-num">2</div>
+        <div class="dl-hint-step-text">Tap the <b>⋮ three-dot icon</b> inside the video player (bottom-right corner of the video)</div>
+      </div>
+      <div class="dl-hint-step">
+        <div class="dl-hint-num">3</div>
+        <div class="dl-hint-step-text">Tap <b>"Download"</b> — video saves to your phone</div>
+      </div>
+      <div class="dl-hint-step">
+        <div class="dl-hint-num">4</div>
+        <div class="dl-hint-step-text"><b>Or:</b> long press anywhere on the video → tap <b>"Save video"</b></div>
+      </div>
+    </div>
+    <div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:20px">
+      <i class="fas fa-info-circle" style="color:#a78bfa;margin-right:6px"></i>
+      File saves with the <b style="color:var(--text)">video title</b> as the filename
+    </div>
+    <button class="dl-hint-ok" onclick="confirmDownloadHint()">Got it — Open Download</button>
+    <button class="dl-hint-skip" onclick="closeDlHint()">Cancel</button>
+  </div>
+</div>
+
+<!-- Download Toast -->
+<div id="dl-toast">
+  <div class="dl-toast-icon"><i class="fas fa-download" id="dl-toast-icon"></i></div>
+  <div class="dl-toast-text">
+    <div class="dl-toast-title" id="dl-toast-title">Preparing download…</div>
+    <div class="dl-toast-sub" id="dl-toast-sub">Fetching video URL</div>
+    <div class="dl-bar-wrap"><div class="dl-bar" id="dl-bar"></div></div>
+  </div>
+</div>
+
+<nav class="bnav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<script>
+// ================================================================
+// ELEMENTS
+// ================================================================
+const vid   = document.getElementById('vid');
+const wrap  = document.getElementById('player-wrap');
+const ctrls = document.getElementById('controls');
+
+// ================================================================
+// STATE
+// ================================================================
+let videoId, videoData;
+let hideTimer, seeking = false, descExpanded = false, viewTracked = false;
+let currentItag = '18';
+let currentQualityLabel = '360p';
+let availableFormats = [];
+let formatsLoaded = false;
+let isRotated = false;
+
+// Start paused-state — show controls immediately so user sees them before video loads
+wrap.classList.add('paused');
+showCtrl(); // will be defined below — hoisted via function declaration
+
+// ================================================================
+// INIT
+// ================================================================
+async function init() {
+  const p = new URLSearchParams(location.search);
+  videoId = p.get('v');
+  if (!videoId) { location.href = 'index.html'; return; }
+
+  document.getElementById('yt-link').href = `https://youtube.com/watch?v=${videoId}`;
+
+  videoData = await getVideo(videoId);
+  if (!videoData) { showError('Video not found in ASTUBE.'); return; }
+
+  document.title = `${videoData.title} - ASTUBE`;
+  populateInfo(videoData);
+  loadRelated(videoData.category, videoId);
+  await loadVideo('18');   // Always start at 360p (itag 18)
+  fetchFormats();          // Background: populate quality menu
+}
+
+// ================================================================
+// VIDEO LOADING — starts at 360p by default
+// ================================================================
+async function loadVideo(itag = '18') {
+  currentItag = itag;
+
+  const msg = itag === '18' ? 'Loading 360p…' : `Switching to ${currentQualityLabel}…`;
+  showLoading(true, msg);
+  showPlayerError(false);
+
+  if (!window.BACKEND_URL) {
+    showLoading(false);
+    showError('Termux backend is offline.\nStart it with: bash start.sh');
+    return;
+  }
+
+  try {
+    const isFirstLoad = vid.currentTime === 0 && vid.paused;
+    const wasPlaying  = !vid.paused && vid.currentTime > 0;
+    const prevTime    = vid.currentTime;
+
+    const res = await getVideoUrl(videoId, itag);
+    vid.src = res.url;
+    vid.load();
+
+    const onReady = async () => {
+      if (prevTime > 1) {
+        // Quality switch — restore position
+        vid.currentTime = prevTime;
+        if (wasPlaying) vid.play().catch(() => {});
+      } else if (isFirstLoad) {
+        // First load — start muted to satisfy browser autoplay policy
+        vid.muted = true;
+        vid.volume = 1;
+        try {
+          await vid.play();
+          // Autoplay succeeded — unmute immediately
+          vid.muted = false;
+          updateVolIcon();
+        } catch {
+          // Autoplay blocked entirely — show controls so user can tap play
+          vid.muted = false;
+          updateVolIcon();
+          wrap.classList.add('paused');
+          showCtrl();
+        }
+      }
+    };
+
+    // loadeddata fires more reliably than canplay after src reassignment
+    vid.addEventListener('loadeddata', onReady, { once: true });
+  } catch(e) {
+    showError(e.message || 'Failed to load video.');
+  }
+}
+
+async function retryLoad() {
+  // Re-verify backend then retry
+  await _verifyBackendInBackground();
+  await loadVideo(currentItag);
+}
+
+// ================================================================
+// QUALITY — fetch all combined audio+video formats
+// ================================================================
+async function fetchFormats() {
+  if (!window.BACKEND_URL) return;
+
+  try {
+    const res  = await fetch(`${window.BACKEND_URL}/get-formats?ytId=${videoId}`);
+    if (!res.ok) {
+      document.getElementById('quality-loading').innerHTML =
+        '<span style="color:rgba(255,255,255,.4);font-size:12px">Only 360p available</span>';
+      return;
+    }
+    const data = await res.json();
+
+    // Backend returns: { formats: { formats: [...], default_itag, title, thumbnail }, cached }
+    // OR it may return the inner object directly if cached differently — handle both:
+    let fmtList = null;
+    let defaultItag = '18';
+
+    if (data && data.formats) {
+      const inner = data.formats;
+      if (Array.isArray(inner)) {
+        // Shape: { formats: [...] }
+        fmtList = inner;
+      } else if (inner && Array.isArray(inner.formats)) {
+        // Shape: { formats: { formats: [...], default_itag, ... } }
+        fmtList = inner.formats;
+        defaultItag = inner.default_itag || '18';
+      }
+    } else if (Array.isArray(data)) {
+      fmtList = data;
+    }
+
+    if (!fmtList || !fmtList.length) {
+      document.getElementById('quality-loading').innerHTML =
+        '<span style="color:rgba(255,255,255,.4);font-size:12px">Only 360p available</span>';
+      return;
+    }
+
+    availableFormats = fmtList;
+    formatsLoaded    = true;
+    renderQualityMenu(fmtList, defaultItag);
+  } catch(e) {
+    console.warn('Formats fetch failed, quality selector unavailable:', e);
+    document.getElementById('quality-loading').innerHTML =
+      '<span style="color:rgba(255,255,255,.4);font-size:12px">Only 360p available</span>';
+  }
+}
+
+function renderQualityMenu(fmts, defaultItag) {
+  const menu = document.getElementById('quality-menu');
+  menu.innerHTML = `
+    <div class="quality-menu-hdr">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      </svg>
+      Quality
+    </div>`;
+
+  // Determine which itag is currently active
+  const activeItag = currentItag || defaultItag || '18';
+
+  fmts.forEach(f => {
+    const isActive = f.itag === activeItag ||
+                     (activeItag === '18' && f.default && f.label === '360p');
+    // Format the size note
+    let sizeNote = '';
+    if (f.filesize && f.filesize > 0) {
+      sizeNote = `${(f.filesize / 1024 / 1024).toFixed(0)}MB`;
+    } else if (f.note) {
+      sizeNote = f.note;
+    } else if (f.fps && f.fps > 30) {
+      sizeNote = `${f.fps}fps`;
+    }
+
+    const btn = document.createElement('button');
+    btn.className    = 'quality-opt' + (isActive ? ' active' : '');
+    btn.dataset.itag  = f.itag;
+    btn.dataset.label = f.label;
+    btn.innerHTML = `
+      <span class="quality-opt-check">${isActive ? '<i class="fas fa-check"></i>' : ''}</span>
+      <span class="quality-opt-label">${f.label}</span>
+      <span class="quality-opt-note">${sizeNote}</span>
+    `;
+    btn.onclick = () => selectQuality(f.itag, f.label);
+    menu.appendChild(btn);
+  });
+
+  // Update the button label to reflect the current itag's label
+  const currentFmt = fmts.find(f => f.itag === activeItag);
+  if (currentFmt) {
+    document.getElementById('quality-label').textContent = currentFmt.label;
+    currentQualityLabel = currentFmt.label;
+  }
+}
+
+function updateQualityMenuActive() {
+  document.querySelectorAll('.quality-opt').forEach(btn => {
+    const active = btn.dataset.itag === currentItag;
+    btn.classList.toggle('active', active);
+    btn.querySelector('.quality-opt-check').innerHTML = active ? '<i class="fas fa-check"></i>' : '';
+  });
+}
+
+function toggleQualityMenu() {
+  document.getElementById('quality-menu').classList.toggle('open');
+}
+
+async function selectQuality(itag, label) {
+  document.getElementById('quality-menu').classList.remove('open');
+  if (itag === currentItag) return;
+
+  currentItag         = itag;
+  currentQualityLabel = label;
+  document.getElementById('quality-label').textContent = label;
+  updateQualityMenuActive();
+  showLoading(true, `Switching to ${label}…`);
+  await loadVideo(itag);
+}
+
+// ================================================================
+// POPULATE INFO — shows ASTUBE uploader (not YouTube channel)
+// ================================================================
+async function populateInfo(v) {
+  document.getElementById('video-info').style.display  = 'block';
+  document.getElementById('player-side').style.display = 'block';
+  document.getElementById('v-title').textContent       = v.title || '';
+  // Also set title inside the player controls overlay
+  const ctrlTitle = document.getElementById('ctrl-title');
+  if (ctrlTitle) ctrlTitle.textContent = v.title || '';
+  document.getElementById('v-meta-inline').textContent =
+    `${formatCount(v.views)} views · ${v.addedAt ? timeAgo(v.addedAt) : ''}`;
+
+  // Init like button + share + comments
+  initLikeBtn(videoId);
+  initShareBtn(videoId, v.title || '');
+  initComments(videoId);
+
+  const desc = v.description || '';
+  document.getElementById('v-desc').textContent = desc || 'No description.';
+  if (desc.length > 150) document.getElementById('v-desc-btn').style.display = 'block';
+
+  // Show ASTUBE uploader info (NOT YouTube channel name)
+  const avEl   = document.getElementById('v-up-av');
+  const nameEl = document.getElementById('v-up-name');
+  const subEl  = document.getElementById('v-up-sub');
+
+  // Initial render from video record
+  nameEl.textContent = v.addedByName || 'ASTUBEr';
+  subEl.textContent  = 'ASTUBE member';
+  setAvatarEl(avEl, v.addedByPhotoUrl || null, v.addedByName || 'A');
+
+  // Upgrade with full DB profile + sub button + channel link
+  const uploaderUid = v.addedByUid || v.addedBy || null;
+  if (uploaderUid) {
+    // Channel link on avatar/name
+    const chLink = document.getElementById('v-ch-link');
+    if (chLink) chLink.onclick = () => location.href = 'channel.html?uid=' + uploaderUid;
+    // Subscribe button
+    const subBtn = document.getElementById('player-sub-btn');
+    if (subBtn) {
+      subBtn.style.display = 'inline-flex';
+      initSubBtn(subBtn, uploaderUid);
+    }
+    try {
+      const uploader = await getUserData(uploaderUid);
+      if (uploader) {
+        const name = uploader.name || v.addedByName || 'ASTUBEr';
+        nameEl.textContent = name;
+        setAvatarEl(avEl, uploader.photoUrl || v.addedByPhotoUrl || null, name);
+        // Show username + sub count
+        const subsN = await getSubCount(uploaderUid);
+        subEl.textContent = (uploader.username ? uploader.username + ' · ' : '') + formatSubs(subsN) + ' subscribers';
+        if (uploader.createdAt) {
+          subEl.textContent += ` · joined ${new Date(uploader.createdAt).getFullYear()}`;
+        }
+      }
+    } catch(e) {}
+  }
+}
+
+async function loadRelated(category, curId) {
+  // Use sessionStorage cache from home page if available, else fetch
+  let videos = [];
+  try {
+    const raw = sessionStorage.getItem('astube_home_videos');
+    if (raw) {
+      const { videos: cached } = JSON.parse(raw);
+      if (cached && cached.length) videos = cached;
+    }
+  } catch(e) {}
+  if (!videos.length) videos = await loadAllVideos();
+
+  const rel  = videos.filter(v => v.id !== curId && v.category === category).slice(0, 15);
+  const list = document.getElementById('related-list');
+  if (!rel.length) {
+    list.innerHTML = `<p style="color:var(--text2);font-size:13px;padding:8px 0">No related videos</p>`;
+    return;
+  }
+  list.innerHTML = rel.map(v => `
+    <div class="rel-card" onclick="location.href='player.html?v=${v.id}'">
+      <div class="rel-thumb">
+        <img src="${v.thumbnail||`https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`}" loading="lazy"
+          onerror="this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'"/>
+        <span class="rel-dur">${v.durationFormatted||formatDuration(v.duration)}</span>
+      </div>
+      <div class="rel-info">
+        <p class="rel-title">${v.title||'Untitled'}</p>
+        <p class="rel-ch">${v.addedByName||'Unknown'}</p>
+      </div>
+    </div>`).join('');
+}
+
+// ================================================================
+// VIDEO EVENTS
+// ================================================================
+vid.addEventListener('canplay',  () => showLoading(false));
+vid.addEventListener('waiting',  () => showLoading(true, 'Buffering…'));
+vid.addEventListener('playing',  () => {
+  showLoading(false);
+  if (!viewTracked) { viewTracked = true; incrementViews(videoId); addToHistory(videoId); }
+});
+vid.addEventListener('play', () => {
+  setPlayIcon(true);
+  wrap.classList.remove('paused');
+  // Don't reset timer here — let whatever triggered play (tap) manage the timer
+});
+vid.addEventListener('pause', () => {
+  setPlayIcon(false);
+  wrap.classList.add('paused');
+  // Don't reset timer — let the existing 3s timer run naturally
+  // Controls will hide after 3s just as with any other state
+});
+vid.addEventListener('ended', () => {
+  setPlayIcon(false);
+  wrap.classList.add('paused');
+  // Video finished — show controls and keep them visible permanently
+  clearTimeout(hideTimer);
+  ctrls.classList.add('force-show');
+});
+vid.addEventListener('timeupdate', updateProgress);
+vid.addEventListener('progress',   updateBuffer);
+vid.addEventListener('error', () => showError('Video playback error. Try retrying.'));
+
+// ================================================================
+// CORE CONTROLS
+// ================================================================
+function togglePlay() { vid.paused ? vid.play().catch(() => {}) : vid.pause(); }
+function skip(s) { vid.currentTime = Math.max(0, Math.min(vid.duration || 0, vid.currentTime + s)); }
+function skipAndFlash(s) { skip(s); flashSeek(s < 0 ? -1 : 1); showCtrl(); }
+function toggleMute() { vid.muted = !vid.muted; updateVolIcon(); }
+function setVol(v) { vid.volume = parseFloat(v); vid.muted = parseFloat(v) === 0; updateVolIcon(); }
+
+function setPlayIcon(playing) {
+  document.getElementById('play-icon').innerHTML = playing
+    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+    : '<polygon points="5,3 19,12 5,21"/>';
+}
+
+function updateVolIcon() {
+  const muted = vid.muted || vid.volume === 0;
+  document.getElementById('vol-icon').innerHTML = muted
+    ? '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2"/><line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2"/>'
+    : '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="currentColor" stroke-width="2" fill="none"/>';
+  const sl = document.getElementById('vol-slider');
+  if (sl) sl.value = muted ? 0 : vid.volume;
+}
+
+function updateProgress() {
+  if (seeking) return;
+  const cur = vid.currentTime || 0;
+  const dur = vid.duration    || 0;
+  const pct = dur ? (cur / dur) * 100 : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-thumb').style.left = pct + '%';
+  updateTimestamps(cur, dur);
+}
+
+function updateTimestamps(cur, dur) {
+  const curStr = formatDuration(cur);
+  const durStr = formatDuration(dur);
+  const tsCur   = document.getElementById('ctrl-ts-cur');
+  const tsTotal = document.getElementById('ctrl-ts-total');
+  if (tsCur)   tsCur.textContent   = curStr;
+  if (tsTotal) tsTotal.textContent = durStr;
+  const td = document.getElementById('time-disp');
+  if (td) td.textContent = curStr + ' / ' + durStr;
+}
+
+function updateBuffer() {
+  if (!vid.buffered.length || !vid.duration) return;
+  const pct = (vid.buffered.end(vid.buffered.length - 1) / vid.duration) * 100;
+  document.getElementById('progress-buf').style.width = pct + '%';
+}
+
+// ── Seek bar — mouse + touch drag with live time tooltip ──────────
+const pb  = document.getElementById('progress-bar');
+const tip = document.getElementById('progress-tip');
+
+function pbFraction(clientX, clientY) {
+  const r = pb.getBoundingClientRect();
+  // When the player is manually rotated 90deg (CSS transform), the progress bar
+  // is also rotated. Its visual left→right runs along the screen's bottom→top
+  // (i.e., increasing clientY = decreasing progress).
+  // We detect this by checking if the bar is taller than wide (post-rotation).
+  if (r.height > r.width) {
+    // Bar is rotated: map clientY to fraction, inverted (top of screen = end of bar)
+    return Math.max(0, Math.min(1, 1 - (clientY - r.top) / r.height));
+  }
+  return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+}
+
+function showTip(frac) {
+  const pct = frac * 100;
+  tip.style.display = 'block';
+  tip.style.left = Math.max(2, Math.min(98, pct)) + '%';
+  tip.textContent = formatDuration(frac * (vid.duration || 0));
+}
+
+function hideTip() { tip.style.display = 'none'; }
+
+function applyScrub(frac) {
+  const pct = frac * 100;
+  const dur = vid.duration || 0;
+  const cur = frac * dur;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-thumb').style.left  = pct + '%';
+  vid.currentTime = cur;
+  updateTimestamps(cur, dur);
+  showTip(frac);
+}
+
+// ── MOUSE ──────────────────────────────────────────────────────────
+pb.addEventListener('mouseenter', e => { showCtrl(); showTip(pbFraction(e.clientX, e.clientY)); });
+pb.addEventListener('mousemove',  e => { if (!seeking) showTip(pbFraction(e.clientX, e.clientY)); });
+pb.addEventListener('mouseleave', () => { if (!seeking) hideTip(); });
+
+pb.addEventListener('mousedown', e => {
+  e.preventDefault();
+  seeking = true;
+  pb.classList.add('dragging');
+  showCtrl();
+  applyScrub(pbFraction(e.clientX, e.clientY));
+
+  const onMove = ev => applyScrub(pbFraction(ev.clientX, ev.clientY));
+  const onUp   = ev => {
+    seeking = false;
+    pb.classList.remove('dragging');
+    applyScrub(pbFraction(ev.clientX, ev.clientY));
+    hideTip();
+    scheduleHide();
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+});
+
+// ── TOUCH ──────────────────────────────────────────────────────────
+pb.addEventListener('touchstart', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  seeking = true;
+  pb.classList.add('dragging');
+  showCtrl();
+  applyScrub(pbFraction(e.touches[0].clientX, e.touches[0].clientY));
+}, { passive: false });
+
+pb.addEventListener('touchmove', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  applyScrub(pbFraction(e.touches[0].clientX, e.touches[0].clientY));
+}, { passive: false });
+
+pb.addEventListener('touchend', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  seeking = false;
+  pb.classList.remove('dragging');
+  applyScrub(pbFraction(e.changedTouches[0].clientX, e.changedTouches[0].clientY));
+  setTimeout(hideTip, 800);
+  scheduleHide();
+}, { passive: false });
+
+// ================================================================
+// CONTROLS SHOW / HIDE
+// ================================================================
+// The ONLY way controls become visible is via showCtrl().
+// The ONLY way they hide is via the 3s timer in scheduleHide().
+// This applies in ALL states: playing, paused, fullscreen, landscape.
+
+function showCtrl() {
+  ctrls.classList.add('force-show');
+  scheduleHide();
+}
+
+function scheduleHide() {
+  clearTimeout(hideTimer);
+  // Always hide after 3s — even when paused (per spec)
+  // Exception: video ended — keep controls visible
+  if (vid.ended) return;
+  hideTimer = setTimeout(() => {
+    ctrls.classList.remove('force-show');
+  }, 3000);
+}
+
+// NOTE: No mousemove listener — that would reset the timer on every mouse move
+// and prevent controls from ever hiding on desktop.
+
+// ================================================================
+// SEEK FLASH ANIMATION
+// ================================================================
+function flashSeek(dir) {
+  const el = document.getElementById(dir < 0 ? 'flash-left' : 'flash-right');
+  el.classList.add('show');
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => el.classList.remove('show'), 650);
+}
+
+// ================================================================
+// GESTURE — tap behaviour
+//
+// 1st tap anywhere → show controls + title for 3s, video KEEPS PLAYING
+// 2nd tap within 3s:
+//   left zone  (<35%) → seek −10s
+//   right zone (>65%) → seek +10s
+//   center            → play / pause
+// Controls always hide after 3s regardless of play state
+// ================================================================
+let tapCount = 0, tapTimer;
+
+function handleTap(clientX, clientY) {
+  // In manual landscape (CSS rotate 90deg), the video's horizontal axis
+  // maps to the screen's Y axis — and is inverted (top of screen = right of video).
+  // So we must use clientY (inverted) instead of clientX to determine left/right zone.
+  let zone;
+  if (isRotated && wrap.style.cssText.includes('rotate')) {
+    // Screen top → video right, screen bottom → video left
+    const rect = wrap.getBoundingClientRect();
+    const relY = clientY - rect.top;
+    zone = relY / (rect.height || window.innerHeight); // top=forward(right), bottom=rewind(left)
+  } else {
+    const relX = clientX - wrap.getBoundingClientRect().left;
+    zone = relX / (wrap.offsetWidth || 1);
+  }
+
+  tapCount++;
+  clearTimeout(tapTimer);
+
+  if (tapCount === 1) {
+    // 1st tap — show controls only, do NOT play/pause
+    showCtrl();
+    tapTimer = setTimeout(() => {
+      tapCount = 0;
+    }, 3000);
+  } else {
+    // 2nd tap within window — perform action
+    tapCount = 0;
+    clearTimeout(tapTimer);
+    if (zone < 0.35) {
+      skipAndFlash(-10);
+    } else if (zone > 0.65) {
+      skipAndFlash(10);
+    } else {
+      togglePlay();
+      showCtrl();
+    }
+  }
+}
+
+// Desktop clicks on video area (not controls or flash)
+wrap.addEventListener('click', e => {
+  if (e.target.closest('.controls') || e.target.closest('.seek-flash')) return;
+  handleTap(e.clientX, e.clientY);
+});
+
+// Mobile touches on video (not controls or flash)
+vid.addEventListener('touchend', e => {
+  e.preventDefault();
+  e.stopPropagation(); // prevents the synthetic click from also firing on wrap
+  if (e.target.closest('.controls') || e.target.closest('.seek-flash')) return;
+  handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+});
+
+// ================================================================
+// SPEED
+// ================================================================
+function toggleSpeedMenu() { document.getElementById('speed-menu').classList.toggle('open'); }
+function setSpeed(s) {
+  vid.playbackRate = s;
+  document.getElementById('speed-btn').textContent = s + '×';
+  document.querySelectorAll('.speed-opt').forEach(o => o.classList.toggle('active', parseFloat(o.textContent) === s));
+  document.getElementById('speed-menu').classList.remove('open');
+}
+
+// ================================================================
+// FULLSCREEN — works on all devices/screens. Independent of rotate.
+// ================================================================
+function toggleFs() {
+  if (!document.fullscreenElement) {
+    wrap.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  const isFs = !!document.fullscreenElement;
+  document.getElementById('fs-icon').innerHTML = isFs
+    ? '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>'
+    : '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>';
+  // Show controls briefly then auto-hide if playing
+  showCtrl();
+});
+
+// ================================================================
+// ROTATE — Mobile-only landscape toggle. Fully independent of fullscreen.
+// Uses CSS class instead of inline style so controls CSS works properly.
+// ================================================================
+function toggleRotate() {
+  isRotated = !isRotated;
+  const btn = document.getElementById('rotate-btn');
+  if (isRotated) {
+    btn.classList.add('rotated');
+    enterLandscape();
+  } else {
+    btn.classList.remove('rotated');
+    exitLandscape();
+  }
+}
+
+function enterLandscape() {
+  // Try the Screen Orientation API first (Android Chrome — cleanest)
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').then(() => {
+      // API handled it — device rotated itself, no manual transform needed
+      applyLandscapeOverlay();
+    }).catch(() => {
+      // API unavailable or denied — fall back to CSS transform
+      applyManualLandscape();
+    });
+  } else {
+    applyManualLandscape();
+  }
+}
+
+function applyLandscapeOverlay() {
+  // Device rotated itself. Just go fullscreen-like overlay so it fills screen.
+  wrap.classList.add('landscape-mode');
+  document.querySelector('header.hdr')?.style.setProperty('display','none','important');
+  document.querySelector('nav.sidebar')?.style.setProperty('display','none','important');
+  document.querySelector('nav.bnav')?.style.setProperty('display','none','important');
+  document.body.style.overflow = 'hidden';
+  showCtrl();
+}
+
+function applyManualLandscape() {
+  // CSS transform approach — rotate the player element 90deg
+  // Use window dimensions at time of press
+  const vp = window.visualViewport;
+  const vpW = vp ? vp.width  : window.innerWidth;
+  const vpH = vp ? vp.height : window.innerHeight;
+  // After rotation: our element's width = screen height, height = screen width
+  const targetW = Math.max(vpW, vpH);
+  const targetH = Math.min(vpW, vpH);
+
+  wrap.classList.add('landscape-mode');
+  wrap.style.cssText = [
+    'position: fixed',
+    'top: 0',
+    'left: 0',
+    `width: ${targetW}px`,
+    `height: ${targetH}px`,
+    'transform: rotate(90deg) translateY(-100%)',
+    'transform-origin: top left',
+    'z-index: 9999',
+    'aspect-ratio: unset',
+    'border-radius: 0',
+    'background: #000',
+    'overflow: hidden',
+  ].join(';');
+
+  document.querySelector('header.hdr')?.style.setProperty('display','none','important');
+  document.querySelector('nav.sidebar')?.style.setProperty('display','none','important');
+  document.querySelector('nav.bnav')?.style.setProperty('display','none','important');
+  document.body.style.overflow = 'hidden';
+  showCtrl();
+}
+
+function exitLandscape() {
+  // Restore
+  if (screen.orientation && screen.orientation.unlock) {
+    try { screen.orientation.unlock(); } catch(e) {}
+  }
+  wrap.classList.remove('landscape-mode');
+  wrap.style.cssText = '';
+  document.querySelector('header.hdr')?.style.removeProperty('display');
+  document.querySelector('nav.sidebar')?.style.removeProperty('display');
+  document.querySelector('nav.bnav')?.style.removeProperty('display');
+  document.body.style.overflow = '';
+}
+
+// Auto-exit landscape if device physically rotates back
+window.addEventListener('orientationchange', () => {
+  if (!isRotated) return;
+  setTimeout(() => {
+    const angle = screen.orientation ? screen.orientation.angle : (window.orientation || 0);
+    if (angle === 0 || angle === 180) {
+      // Device returned to portrait while we were in landscape
+      isRotated = false;
+      document.getElementById('rotate-btn').classList.remove('rotated');
+      exitLandscape();
+    }
+  }, 300);
+});
+
+// Escape key exits landscape (fullscreen Escape handled by browser natively)
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && isRotated && !document.fullscreenElement) {
+    isRotated = false;
+    document.getElementById('rotate-btn').classList.remove('rotated');
+    exitLandscape();
+  }
+});
+
+// ================================================================
+// PiP
+// ================================================================
+function togglePip() {
+  if (document.pictureInPictureElement) document.exitPictureInPicture();
+  else vid.requestPictureInPicture().catch(() => {});
+}
+
+// ================================================================
+// KEYBOARD
+// ================================================================
+document.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key === ' ')           { e.preventDefault(); togglePlay(); }
+  if (e.key === 'ArrowLeft')   { skipAndFlash(-10); }
+  if (e.key === 'ArrowRight')  { skipAndFlash(10); }
+  if (e.key === 'ArrowUp')     { e.preventDefault(); setVol(Math.min(1, vid.volume + 0.1)); }
+  if (e.key === 'ArrowDown')   { e.preventDefault(); setVol(Math.max(0, vid.volume - 0.1)); }
+  if (e.key.toLowerCase() === 'm') toggleMute();
+  if (e.key.toLowerCase() === 'f') toggleFs();
+  if (e.key.toLowerCase() === 'p') togglePip();
+});
+
+// Close menus on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.speed-wrap'))   document.getElementById('speed-menu').classList.remove('open');
+  if (!e.target.closest('.quality-wrap')) document.getElementById('quality-menu').classList.remove('open');
+  if (!e.target.closest('.share-wrap'))   document.getElementById('share-menu').classList.remove('open');
+});
+
+// Detach Firebase listener on page leave
+window.addEventListener('pagehide', () => _detachListener());
+
+// ================================================================
+// HELPERS
+// ================================================================
+function showLoading(v, msg = 'Loading…') {
+  document.getElementById('player-loading').style.display = v ? 'flex' : 'none';
+  if (msg) document.getElementById('loading-msg').textContent = msg;
+}
+function showError(msg) {
+  showLoading(false);
+  document.getElementById('player-error').style.display = 'flex';
+  document.getElementById('player-error-msg').textContent = msg;
+}
+function showPlayerError(v) {
+  document.getElementById('player-error').style.display = v ? 'flex' : 'none';
+}
+function toggleDesc() {
+  descExpanded = !descExpanded;
+  document.getElementById('v-desc').classList.toggle('expanded', descExpanded);
+  document.getElementById('v-desc-btn').textContent = descExpanded ? 'Show less' : 'Show more';
+}
+function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (q) location.href = `search.html?q=${encodeURIComponent(q)}`;
+}
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+// ================================================================
+// LIKE SYSTEM
+// ================================================================
+
+async function initLikeBtn(vidId) {
+  const btn   = document.getElementById('like-btn');
+  const cntEl = document.getElementById('like-count');
+  const metaEl = document.getElementById('v-likes-meta');
+  const metaCount = document.getElementById('v-likes-meta-count');
+  if (!btn) return;
+
+  // Load count always
+  const count = await getLikeCount(vidId);
+  cntEl.textContent = formatCount(count);
+  if (count > 0) {
+    if (metaEl)    metaEl.style.display = 'inline-flex';
+    if (metaCount) metaCount.textContent = formatCount(count);
+  }
+
+  // Check if current user liked
+  const viewer = auth.currentUser;
+  if (!viewer) {
+    // Not logged in — clicking like will redirect
+    btn.onclick = () => { location.href = 'login.html?redirect=' + encodeURIComponent(location.href); };
+    return;
+  }
+
+  const liked = await hasLiked(vidId, viewer.uid);
+  _setLikeState(liked, count);
+}
+
+function _setLikeState(liked, count) {
+  const btn     = document.getElementById('like-btn');
+  const cntEl   = document.getElementById('like-count');
+  const metaEl  = document.getElementById('v-likes-meta');
+  const metaCnt = document.getElementById('v-likes-meta-count');
+  if (!btn) return;
+
+  btn.classList.toggle('liked', liked);
+  cntEl.textContent = formatCount(count);
+
+  if (count > 0) {
+    if (metaEl)  metaEl.style.display = 'inline-flex';
+    if (metaCnt) metaCnt.textContent = formatCount(count);
+  } else {
+    if (metaEl)  metaEl.style.display = 'none';
+  }
+}
+
+async function handleLike() {
+  const viewer = auth.currentUser;
+  if (!viewer) { location.href = 'login.html?redirect=' + encodeURIComponent(location.href); return; }
+
+  const btn = document.getElementById('like-btn');
+  if (!btn || btn.classList.contains('loading')) return;
+  btn.classList.add('loading');
+
+  try {
+    const { nowLiked, newCount } = await toggleLike(videoId, viewer.uid);
+    _setLikeState(nowLiked, newCount);
+    showToast(nowLiked ? 'Video liked!' : 'Like removed', nowLiked ? 'success' : 'info');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+// ================================================================
+// SHARE SYSTEM
+// ================================================================
+
+function initShareBtn(vidId, title) {
+  // Show native share button on mobile if supported
+  if (navigator.share) {
+    const nativeBtn = document.getElementById('native-share-btn');
+    if (nativeBtn) nativeBtn.style.display = 'flex';
+  }
+}
+
+function toggleShareMenu() {
+  document.getElementById('share-menu').classList.toggle('open');
+  // Hide copied indicator when reopening
+  document.getElementById('share-copied').classList.remove('show');
+}
+
+function _getShareUrls() {
+  const base    = location.origin + location.pathname.replace('player.html', '');
+  const astu    = `${base}player.html?v=${videoId}`;
+  const yt      = `https://www.youtube.com/watch?v=${videoId}`;
+  const title   = (videoData && videoData.title) ? videoData.title : 'Watch on ASTUBE';
+  return { astu, yt, title };
+}
+
+async function shareAction(type) {
+  const { astu, yt, title } = _getShareUrls();
+
+  if (type === 'copy-astube') {
+    await _copyText(astu);
+  } else if (type === 'copy-yt') {
+    await _copyText(yt);
+  } else if (type === 'whatsapp') {
+    window.open(`https://wa.me/?text=${encodeURIComponent(title + '\n' + astu)}`, '_blank');
+    document.getElementById('share-menu').classList.remove('open');
+  } else if (type === 'telegram') {
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(astu)}&text=${encodeURIComponent(title)}`, '_blank');
+    document.getElementById('share-menu').classList.remove('open');
+  } else if (type === 'twitter') {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(astu)}`, '_blank');
+    document.getElementById('share-menu').classList.remove('open');
+  } else if (type === 'facebook') {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(astu)}`, '_blank');
+    document.getElementById('share-menu').classList.remove('open');
+  } else if (type === 'native') {
+    document.getElementById('share-menu').classList.remove('open');
+    try {
+      await navigator.share({ title, text: title, url: astu });
+    } catch(e) { /* user cancelled */ }
+  }
+}
+
+async function _copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch(e) {
+    // fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  const copied = document.getElementById('share-copied');
+  if (copied) {
+    copied.classList.add('show');
+    setTimeout(() => {
+      copied.classList.remove('show');
+      document.getElementById('share-menu').classList.remove('open');
+    }, 1800);
+  }
+}
+
+// ================================================================
+// COMMENTS SYSTEM
+// ================================================================
+
+let _cmtOpen     = false;
+let _cmtListener = null;   // Firebase realtime listener
+
+// Called when video loads — init count badge
+async function initComments(vidId) {
+  const snap = await db.ref(`comments/${vidId}`).once('value');
+  const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+  _updateCmtBadge(count);
+}
+
+function _updateCmtBadge(n) {
+  const el = document.getElementById('cmt-count');
+  if (el) el.textContent = n > 0 ? formatCount(n) : '0';
+}
+
+// Toggle open/close
+function toggleComments() {
+  _cmtOpen = !_cmtOpen;
+  const panel = document.getElementById('comment-panel');
+  const btn   = document.getElementById('comment-btn');
+  panel.classList.toggle('open', _cmtOpen);
+  btn.classList.toggle('active', _cmtOpen);
+
+  if (_cmtOpen) {
+    _setupCommentInput();
+    _listenComments();
+    // Scroll panel into view on mobile
+    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  } else {
+    _detachListener();
+  }
+}
+
+// Setup input area based on auth state
+function _setupCommentInput() {
+  const user = auth.currentUser;
+  const inputRow   = document.getElementById('cmt-input-row');
+  const loginNudge = document.getElementById('cmt-login-nudge');
+
+  if (user) {
+    inputRow.style.display   = 'flex';
+    loginNudge.style.display = 'none';
+    // Set avatar — use DB photoUrl (user may have changed it), fallback to Auth photo
+    const av = document.getElementById('cmt-self-av');
+    const photo = _userPhotoCache[user.uid] || user.photoURL || '';
+    if (photo) {
+      av.innerHTML = `<img src="${photo}" onerror="this.parentNode.innerHTML='<i class=\\'fas fa-user\\'></i>'"/>`;
+    } else {
+      av.innerHTML = '<i class="fas fa-user"></i>';
+    }
+    // Upgrade with DB photo in background
+    getUserPhoto(user.uid).then(p => {
+      if (p && p !== photo) {
+        av.innerHTML = `<img src="${p}" onerror="this.parentNode.innerHTML='<i class=\\'fas fa-user\\'></i>'"/>`;
+      }
+    }).catch(() => {});
+  } else {
+    inputRow.style.display   = 'none';
+    loginNudge.style.display = 'block';
+  }
+}
+
+// Realtime listener for comments
+function _listenComments() {
+  if (_cmtListener) return; // already listening
+  const ref = db.ref(`comments/${videoId}`).orderByChild('ts');
+  _cmtListener = ref.on('value', snap => {
+    const comments = [];
+    if (snap.exists()) {
+      snap.forEach(c => comments.push({ key: c.key, ...c.val() }));
+    }
+    _renderComments(comments);
+    _updateCmtBadge(comments.length);
+  });
+}
+
+function _detachListener() {
+  if (_cmtListener) {
+    db.ref(`comments/${videoId}`).off('value', _cmtListener);
+    _cmtListener = null;
+  }
+}
+
+// Render all comments
+async function _renderComments(comments) {
+  const list = document.getElementById('cmt-list');
+  const countEl = document.getElementById('cmt-panel-count');
+  if (countEl) countEl.textContent = comments.length ? `(${comments.length})` : '';
+
+  if (!comments.length) {
+    list.innerHTML = `<div class="cmt-empty"><i class="fas fa-comment-slash"></i>No comments yet. Be the first!</div>`;
+    return;
+  }
+
+  // Reverse so newest at top
+  const sorted = [...comments].reverse();
+  const viewer = auth.currentUser;
+
+  list.innerHTML = sorted.map(c => {
+    const isOwn  = viewer && viewer.uid === c.uid;
+    const chLink = `channel.html?uid=${c.uid}`;
+    const av     = c.photoUrl
+      ? `<img src="${c.photoUrl}" onerror="this.src='';this.parentNode.innerHTML='${_initials(c.displayName)}'">`
+      : _initials(c.displayName);
+
+    return `
+    <div class="cmt-item" data-key="${c.key}">
+      <a href="${chLink}" class="cmt-av" title="View channel">${av}</a>
+      <div class="cmt-body">
+        <div class="cmt-meta">
+          <a href="${chLink}" class="cmt-name">${_esc(c.displayName || 'Anonymous')}</a>
+          <span class="cmt-time">${timeAgo(c.ts)}</span>
+        </div>
+        <div class="cmt-text">${_esc(c.text)}</div>
+      </div>
+      ${isOwn ? `<button class="cmt-del-btn" onclick="deleteComment('${c.key}')" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function _initials(name) {
+  if (!name) return '<i class="fas fa-user"></i>';
+  return name.trim().charAt(0).toUpperCase();
+}
+
+function _esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/\n/g,'<br>');
+}
+
+// Textarea auto-grow + show/hide actions
+function onCmtInput(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  const actions = document.getElementById('cmt-input-actions');
+  const submit  = document.getElementById('cmt-submit-btn');
+  const hasText = ta.value.trim().length > 0;
+  actions.classList.toggle('show', true);
+  if (submit) submit.disabled = !hasText;
+}
+
+// Ctrl+Enter / Enter shortcut
+function onCmtKey(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    submitComment();
+  }
+}
+
+function cancelComment() {
+  const ta = document.getElementById('cmt-textarea');
+  const actions = document.getElementById('cmt-input-actions');
+  const submit  = document.getElementById('cmt-submit-btn');
+  ta.value = '';
+  ta.style.height = 'auto';
+  actions.classList.remove('show');
+  if (submit) submit.disabled = true;
+}
+
+async function submitComment() {
+  const user = auth.currentUser;
+  if (!user) { location.href = 'login.html?redirect=' + encodeURIComponent(location.href); return; }
+
+  const ta     = document.getElementById('cmt-textarea');
+  const submit = document.getElementById('cmt-submit-btn');
+  const text   = ta.value.trim();
+  if (!text) return;
+
+  submit.disabled = true;
+  submit.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+  try {
+    // Get user's display name + photo from Firebase users node
+    let displayName = user.displayName || 'Anonymous';
+    let photoUrl    = user.photoURL || '';
+    try {
+      const uSnap = await db.ref(`users/${user.uid}`).once('value');
+      if (uSnap.exists()) {
+        const ud = uSnap.val();
+        // 'username' > 'name' > Auth displayName (DB stores 'name' not 'displayName')
+        if (ud.username) displayName = ud.username.startsWith('@') ? ud.username : '@' + ud.username;
+        else if (ud.name) displayName = ud.name;
+        if (ud.photoUrl && ud.photoUrl !== 'icon.png') photoUrl = ud.photoUrl;
+      }
+    } catch(e) {}
+
+    await db.ref(`comments/${videoId}`).push({
+      uid: user.uid,
+      displayName,
+      photoUrl,
+      text,
+      ts: Date.now()
+    });
+
+    cancelComment();
+    showToast('Comment posted!', 'success');
+  } catch(e) {
+    showToast('Failed to post: ' + e.message, 'error');
+    submit.disabled = false;
+  } finally {
+    submit.innerHTML = '<i class="fas fa-paper-plane"></i> Post';
+  }
+}
+
+async function deleteComment(key) {
+  const user = auth.currentUser;
+  if (!user) return;
+  if (!confirm('Delete this comment?')) return;
+  try {
+    await db.ref(`comments/${videoId}/${key}`).remove();
+    showToast('Comment deleted', 'info');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ================================================================
+// DOWNLOAD SYSTEM
+// ================================================================
+
+let _dlToastTimer  = null;
+let _pendingDlUrl  = null;
+let _pendingDlName = null;
+
+function _showDlToast(title, sub, progress) {
+  const toast   = document.getElementById('dl-toast');
+  const titleEl = document.getElementById('dl-toast-title');
+  const subEl   = document.getElementById('dl-toast-sub');
+  const bar     = document.getElementById('dl-bar');
+  const icon    = document.getElementById('dl-toast-icon');
+  if (!toast) return;
+  titleEl.textContent = title;
+  subEl.textContent   = sub;
+  bar.style.width     = progress + '%';
+  icon.className      = progress >= 100 ? 'fas fa-check' : 'fas fa-download';
+  toast.style.display = 'flex';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('show'));
+  });
+  clearTimeout(_dlToastTimer);
+}
+
+function _hideDlToast(delay = 3000) {
+  clearTimeout(_dlToastTimer);
+  _dlToastTimer = setTimeout(() => {
+    const toast = document.getElementById('dl-toast');
+    if (!toast) return;
+    toast.classList.remove('show');
+    setTimeout(() => { toast.style.display = 'none'; }, 280);
+  }, delay);
+}
+
+function _setDlBtn(busy) {
+  const btn      = document.getElementById('dl-btn');
+  const labelEl  = document.getElementById('dl-label');
+  const iconEl   = document.getElementById('dl-icon');
+  const progress = document.getElementById('dl-progress');
+  if (!btn) return;
+  if (busy) {
+    btn.classList.add('dl-busy');
+    labelEl.textContent = 'Fetching…';
+    iconEl.className    = 'fas fa-spinner fa-spin';
+    progress.style.transition = 'width 3s ease';
+    setTimeout(() => { progress.style.width = '80%'; }, 30);
+  } else {
+    btn.classList.remove('dl-busy');
+    labelEl.textContent  = 'Download';
+    iconEl.className     = 'fas fa-download';
+    progress.style.transition = 'width .2s';
+    progress.style.width = '0%';
+  }
+}
+
+// Show hint modal first time, skip on subsequent taps
+async function handleDownload() {
+  if (!videoId || !window.BACKEND_URL) {
+    showToast('Backend offline — cannot download', 'error');
+    return;
+  }
+
+  const hintSeen = localStorage.getItem('astube_dl_hint_seen');
+
+  // Fetch URL eagerly (runs in background while user reads hint)
+  const filename = (videoData && videoData.title
+    ? videoData.title.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim().slice(0, 80)
+    : 'ASTUBE-video') + '.mp4';
+
+  _setDlBtn(true);
+
+  try {
+    const res = await getVideoUrl(videoId, '18');
+    if (!res || !res.url) throw new Error('No URL from backend');
+    _pendingDlUrl  = res.url;
+    _pendingDlName = filename;
+    _setDlBtn(false);
+
+    if (!hintSeen) {
+      // Show hint modal first time
+      document.getElementById('dl-hint-modal').classList.add('show');
+    } else {
+      // Already seen — open directly
+      _executeDl();
+    }
+  } catch(e) {
+    _setDlBtn(false);
+    _pendingDlUrl  = null;
+    _pendingDlName = null;
+    showToast('Download failed: ' + (e.message || 'Backend error'), 'error');
+  }
+}
+
+function confirmDownloadHint() {
+  localStorage.setItem('astube_dl_hint_seen', '1');
+  document.getElementById('dl-hint-modal').classList.remove('show');
+  _executeDl();
+}
+
+function closeDlHint() {
+  document.getElementById('dl-hint-modal').classList.remove('show');
+  _pendingDlUrl  = null;
+  _pendingDlName = null;
+}
+
+function _executeDl() {
+  if (!_pendingDlUrl || !_pendingDlName) return;
+  const filename = _pendingDlName;
+
+  _showDlToast('Download started! ✓', filename, 100);
+
+  // Open YouTube CDN URL directly — browser shows native download bar
+  window.open(_pendingDlUrl, '_blank', 'noopener');
+
+  _hideDlToast(3000);
+  _pendingDlUrl  = null;
+  _pendingDlName = null;
+}
+
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

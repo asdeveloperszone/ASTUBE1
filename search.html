@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Search — ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="Search thousands of videos on ASTUBE and YouTube. Find music, gaming, news, sports, education, and entertainment videos."/>
+  <meta name="keywords" content="ASTUBE search, search videos, find videos, YouTube search, video search, ASTUBE"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/search.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="Search Videos — ASTUBE"/>
+  <meta property="og:description" content="Search and discover videos on ASTUBE and YouTube."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/search.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="Search Videos — ASTUBE"/>
+  <meta name="twitter:description" content="Search and discover videos on ASTUBE and YouTube."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<meta name="theme-color" content="#00c864"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.search-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;margin:0}
+.search-tab{padding:11px 20px;font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px;display:flex;align-items:center;gap:7px}
+.search-tab.active{color:var(--text);border-bottom-color:var(--green)}
+.source-toggle{display:flex;background:var(--surf2);border:1px solid var(--border);border-radius:24px;padding:3px;width:fit-content;margin:12px 16px 4px}
+.src-btn{padding:7px 18px;border-radius:20px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.src-btn.active{background:var(--surf);color:var(--text);box-shadow:0 1px 5px rgba(0,0,0,.35)}
+.src-dot{width:7px;height:7px;border-radius:50%}
+.src-dot-green{background:var(--green)}
+.src-dot-red{background:#ff0000}
+.result-meta{padding:4px 16px 8px;font-size:13px;color:var(--text2);min-height:22px}
+.no-api-warn{margin:0 16px 8px;padding:10px 14px;background:rgba(255,180,0,.08);border:1px solid rgba(255,180,0,.3);border-radius:var(--r);font-size:13px;color:#e6a000;display:none}
+.yt-card{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);align-items:flex-start;transition:background .15s}
+.yt-card:hover{background:var(--surf2)}
+.yt-thumb-wrap{position:relative;flex-shrink:0;width:140px;height:79px;border-radius:8px;overflow:hidden;background:var(--surf2)}
+.yt-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.yt-dur{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.82);color:#fff;font-size:11px;font-weight:700;padding:1px 5px;border-radius:3px;pointer-events:none}
+.yt-info{flex:1;min-width:0}
+.yt-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.yt-ch{font-size:12px;color:var(--text2);margin-bottom:2px}
+.yt-meta{font-size:12px;color:var(--text2)}
+.yt-play-btn{flex-shrink:0;align-self:center;width:36px;height:36px;border-radius:50%;background:#ff0000;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:opacity .2s}
+.yt-play-btn:hover{opacity:.85}
+.yt-play-btn.loading{background:var(--surf2);color:var(--text2);pointer-events:none}
+.yt-play-btn.done{background:var(--green);pointer-events:none}
+.load-more-wrap{padding:8px 16px 16px}
+.load-more-yt{display:none;width:100%;padding:11px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-weight:600;font-size:14px;cursor:pointer;transition:background .2s}
+.load-more-yt:hover{background:var(--surf2)}
+.users-wrap{padding:8px 16px}
+.user-card{display:flex;align-items:center;gap:14px;padding:14px;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;cursor:pointer;transition:background .2s}
+.user-card:hover{background:var(--surf2)}
+.user-card-avatar{width:52px;height:52px;border-radius:50%;min-width:52px;background:var(--red);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.user-card-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.user-card-name{font-size:15px;font-weight:600;margin-bottom:2px}
+.user-card-username{font-size:12px;color:var(--green);margin-bottom:2px}
+.user-card-meta{font-size:12px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-search">
+    <input id="search-input" type="text" placeholder="Search ASTUBE" autocomplete="off"/>
+    <button class="sbtn" onclick="doSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
+  <div class="hdr-right">
+    <div class="backend-status" title="Backend status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text"></span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sign In
+    </button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <a href="index.html" class="s-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="s-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Video</a>
+  <a href="profile.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<main class="main">
+
+  <!-- ── Main tabs ──────────────────────────────────────────────── -->
+  <div class="search-tabs">
+    <div class="search-tab active" id="tab-videos-btn" onclick="switchTab('videos')">
+      <i class="fas fa-film"></i> Videos
+    </div>
+    <div class="search-tab" id="tab-users-btn" onclick="switchTab('users')">
+      <i class="fas fa-users"></i> Users
+    </div>
+  </div>
+
+  <!-- ════════════════════════ VIDEOS TAB ═════════════════════════ -->
+  <div id="tab-videos">
+
+    <!-- Source toggle -->
+    <div class="source-toggle">
+      <button class="src-btn active" id="src-astube" onclick="setSource('astube')">
+        <span class="src-dot src-dot-green"></span> ASTUBE
+      </button>
+      <button class="src-btn" id="src-youtube" onclick="setSource('youtube')">
+        <span class="src-dot src-dot-red"></span>
+        <i class="fab fa-youtube"></i> YouTube
+      </button>
+    </div>
+
+    <!-- No-key warning -->
+    <div class="no-api-warn" id="no-api-warn">
+      <i class="fas fa-exclamation-triangle"></i>
+      YouTube API key not set. Open <b>config.js</b> and set <code>window.YT_API_KEY</code>.
+    </div>
+
+    <div class="result-meta" id="result-meta"></div>
+
+    <!-- ASTUBE results -->
+    <div class="grid" id="astube-grid"></div>
+
+    <!-- YouTube results -->
+    <div id="yt-results" style="display:none"></div>
+    <div class="load-more-wrap">
+      <button class="load-more-yt" id="load-more-yt" onclick="ytLoadMore()">
+        <i class="fas fa-chevron-down"></i> Load more
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════ USERS TAB ══════════════════════════ -->
+  <div id="tab-users" style="display:none">
+    <div class="result-meta" id="users-meta"></div>
+    <div class="users-wrap" id="users-grid"></div>
+  </div>
+
+</main>
+
+<nav class="bnav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────
+let allVideos      = [];
+let _tab           = 'videos';
+let _source        = 'astube';
+let _nextPageToken = '';
+let _lastYtQuery   = '';
+
+// ── Init ──────────────────────────────────────────────────────────
+async function init() {
+  // Use cached videos from home page if available — avoids extra Firebase read
+  try {
+    const raw = sessionStorage.getItem('astube_home_videos');
+    if (raw) {
+      const { videos } = JSON.parse(raw);
+      if (videos && videos.length) allVideos = videos;
+    }
+  } catch(e) {}
+  if (!allVideos.length) allVideos = await loadAllVideos();
+
+  // Warm photo cache for all uploaders (including ASTUBE official)
+  const _uids = allVideos.map(v => v.addedByUid || '').filter(Boolean);
+  if (window.ASTUBE_OFFICIAL_UID) _uids.push(window.ASTUBE_OFFICIAL_UID);
+  await warmPhotoCache(_uids);
+  const p   = new URLSearchParams(location.search);
+  const q   = (p.get('q') || '').trim();
+  const tab = p.get('tab')    || 'videos';
+  const src = p.get('source') || 'astube';
+  const inp = document.getElementById('search-input');
+  inp.value = q;
+
+  switchTab(tab, false);
+  setSource(src, false);
+  if (q) runSearch(q);
+
+  inp.addEventListener('input',   () => runSearch(inp.value));
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+}
+
+// ── Tab switch ────────────────────────────────────────────────────
+function switchTab(tab, run = true) {
+  _tab = tab;
+  document.getElementById('tab-videos-btn').classList.toggle('active', tab === 'videos');
+  document.getElementById('tab-users-btn').classList.toggle('active',  tab === 'users');
+  document.getElementById('tab-videos').style.display = tab === 'videos' ? '' : 'none';
+  document.getElementById('tab-users').style.display  = tab === 'users'  ? '' : 'none';
+  const q = document.getElementById('search-input').value.trim();
+  if (q && run) runSearch(q);
+}
+
+// ── Source switch ─────────────────────────────────────────────────
+function setSource(src, run = true) {
+  _source = src;
+  document.getElementById('src-astube').classList.toggle('active',  src === 'astube');
+  document.getElementById('src-youtube').classList.toggle('active', src === 'youtube');
+  document.getElementById('astube-grid').style.display  = src === 'astube'  ? '' : 'none';
+  document.getElementById('yt-results').style.display   = src === 'youtube' ? '' : 'none';
+  document.getElementById('load-more-yt').style.display = 'none';
+  const noKey = src === 'youtube' && (!window.YT_API_KEY || window.YT_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE');
+  document.getElementById('no-api-warn').style.display = noKey ? 'block' : 'none';
+  const q = document.getElementById('search-input').value.trim();
+  if (q && run) runSearch(q);
+}
+
+// ── Dispatcher ────────────────────────────────────────────────────
+function runSearch(query) {
+  if (_tab === 'users') { searchUsersTab(query); return; }
+  if (_source === 'astube') {
+    searchAstube(query);
+  } else {
+    if (!window.YT_API_KEY || window.YT_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') return;
+    const q = query.trim();
+    if (q !== _lastYtQuery) {
+      _nextPageToken = '';
+      _lastYtQuery   = q;
+      document.getElementById('yt-results').innerHTML = '';
+    }
+    ytSearch(q, true);
+  }
+}
+
+function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  history.replaceState({}, '', `search.html?q=${encodeURIComponent(q)}&tab=${_tab}&source=${_source}`);
+  runSearch(q);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ASTUBE SEARCH
+// ══════════════════════════════════════════════════════════════════
+function searchAstube(query) {
+  const grid = document.getElementById('astube-grid');
+  const meta = document.getElementById('result-meta');
+  const q    = query.trim().toLowerCase();
+  if (!q) { grid.innerHTML = ''; meta.textContent = ''; return; }
+
+  const res = allVideos.filter(v =>
+    (v.title       || '').toLowerCase().includes(q) ||
+    (v.addedByName || v.channel || '').toLowerCase().includes(q) ||
+    (v.description || '').toLowerCase().includes(q)
+  );
+
+  meta.textContent = `${res.length} result${res.length !== 1 ? 's' : ''} for "${query.trim()}"`;
+
+  if (!res.length) {
+    grid.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>No ASTUBE videos found</p>
+      <small>Try YouTube search or different keywords</small>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = res.map(v => renderVideoCard(v.id, v)).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// YOUTUBE SEARCH (Data API v3)
+// ══════════════════════════════════════════════════════════════════
+async function ytSearch(query, fresh) {
+  if (!query) return;
+  const meta        = document.getElementById('result-meta');
+  const container   = document.getElementById('yt-results');
+  const loadMoreBtn = document.getElementById('load-more-yt');
+
+  if (fresh) {
+    meta.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px"></i>Searching YouTube…';
+    loadMoreBtn.style.display = 'none';
+  }
+
+  const params = new URLSearchParams({
+    part: 'snippet', q: query, type: 'video',
+    maxResults: 15, key: window.YT_API_KEY
+  });
+  if (_nextPageToken) params.set('pageToken', _nextPageToken);
+
+  try {
+    const res  = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
+    const data = await res.json();
+
+    if (data.error) { meta.textContent = 'YouTube API error: ' + data.error.message; return; }
+
+    _nextPageToken = data.nextPageToken || '';
+    const items    = data.items || [];
+
+    meta.textContent = items.length
+      ? `YouTube results for "${query}"` : `No results for "${query}"`;
+
+    if (!items.length && fresh) {
+      container.innerHTML = `<div class="empty" style="padding:40px 20px;text-align:center;color:var(--text2)">
+        <i class="fab fa-youtube" style="font-size:40px;opacity:.3;display:block;margin-bottom:12px"></i>
+        <p>No YouTube results found</p></div>`;
+      return;
+    }
+
+    const html = items.map(item => {
+      const vid   = item.id.videoId;
+      const sn    = item.snippet;
+      const thumb = sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url || '';
+      const title = sn.title || 'Untitled';
+      const ch    = sn.channelTitle || '';
+      const date  = sn.publishedAt
+        ? new Date(sn.publishedAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
+      return `<div class="yt-card">
+        <div class="yt-thumb-wrap">
+          <img src="${thumb}" alt="" loading="lazy" onerror="this.src='https://i.ytimg.com/vi/${vid}/hqdefault.jpg'"/>
+        </div>
+        <div class="yt-info">
+          <div class="yt-title">${escHtml(title)}</div>
+          <div class="yt-ch"><i class="fab fa-youtube" style="color:#ff0000;margin-right:4px"></i>${escHtml(ch)}</div>
+          <div class="yt-meta">${date}</div>
+        </div>
+        <button class="yt-play-btn" id="yt-btn-${vid}"
+          data-ytid="${vid}"
+          data-title="${escHtml(title)}"
+          data-ch="${escHtml(ch)}"
+          data-thumb="${escHtml(thumb)}"
+          onclick="handleYtPlay(this)"
+          title="Add to ASTUBE &amp; Play">
+          <i class="fas fa-play"></i>
+        </button>
+      </div>`;
+    }).join('');
+
+    if (fresh) container.innerHTML = html;
+    else       container.insertAdjacentHTML('beforeend', html);
+
+    loadMoreBtn.style.display = _nextPageToken ? 'block' : 'none';
+
+  } catch(e) { meta.textContent = 'Search failed: ' + e.message; }
+}
+
+function handleYtPlay(btn) {
+  const ytid  = btn.dataset.ytid;
+  const title = btn.dataset.title;
+  const ch    = btn.dataset.ch;
+  const thumb = btn.dataset.thumb;
+  playYtVideo(ytid, title, ch, thumb);
+}
+
+function ytLoadMore() {
+  if (_nextPageToken && _lastYtQuery) ytSearch(_lastYtQuery, false);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PLAY YouTube video → fetch info → save to Firebase → open player
+// ══════════════════════════════════════════════════════════════════
+
+// ── ISO 8601 duration helpers (e.g. PT4M13S → seconds / "4:13") ──
+function parseDuration(iso) {
+  if (!iso) return 0;
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return 0;
+  return (parseInt(m[1]||0)*3600) + (parseInt(m[2]||0)*60) + parseInt(m[3]||0);
+}
+function formatISODuration(iso) {
+  const s = parseDuration(iso);
+  if (!s) return '';
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s % 60;
+  if (h) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+async function playYtVideo(ytId, title, channelName, thumb) {
+  const btn = document.getElementById('yt-btn-' + ytId);
+  if (btn) { btn.classList.add('loading'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+
+  try {
+    // Already in Firebase? Just play it
+    const existing = await db.ref('videos/' + ytId).once('value');
+    if (existing.exists()) {
+      if (btn) { btn.classList.remove('loading'); btn.classList.add('done'); btn.innerHTML = '<i class="fas fa-check"></i>'; }
+      location.href = 'player.html?v=' + ytId;
+      return;
+    }
+
+    // ── Step 1: Try backend for full info ───────────────────────────
+    let info = null;
+    if (window.BACKEND_URL) {
+      try {
+        const r = await fetch(`${window.BACKEND_URL}/get-info?ytId=${ytId}`);
+        if (r.ok) info = await r.json();
+      } catch(e) {}
+    }
+
+    // ── Step 2: Backend offline or failed → fallback to YouTube API ──
+    if (!info && window.YT_API_KEY && window.YT_API_KEY !== 'YOUR_YOUTUBE_API_KEY_HERE') {
+      try {
+        const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ytId}&key=${window.YT_API_KEY}`;
+        const r      = await fetch(apiUrl);
+        if (r.ok) {
+          const data = await r.json();
+          const item = data.items && data.items[0];
+          if (item) {
+            const iso = item.contentDetails && item.contentDetails.duration || '';
+            info = {
+              title:             item.snippet.title       || title || 'Untitled',
+              description:       item.snippet.description || '',
+              thumbnail:         (item.snippet.thumbnails.maxres || item.snippet.thumbnails.high || item.snippet.thumbnails.medium || {}).url || thumb || '',
+              duration:          parseDuration(iso),
+              durationFormatted: formatISODuration(iso),
+            };
+          }
+        }
+      } catch(e) {}
+    }
+
+    // Build record — use best available info
+    const record = {
+      title:             (info && info.title)             || title       || 'Untitled',
+      description:       (info && info.description)       || '',
+      thumbnail:         (info && info.thumbnail)         || thumb       || `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
+      duration:          (info && info.duration)          || 0,
+      durationFormatted: (info && info.durationFormatted) || '',
+      views:             0,
+      category:          'entertainment',
+      // Attributed to ASTUBE with icon.png as avatar
+      addedByName:       'ASTUBE',
+      addedByUid:        window.ASTUBE_OFFICIAL_UID || '',
+      addedBy:           window.ASTUBE_OFFICIAL_UID || '',
+      addedByPhotoUrl:   window.ASTUBE_OFFICIAL_UID ? (_userPhotoCache[window.ASTUBE_OFFICIAL_UID] || '') : '',
+      channel:           channelName || 'ASTUBE',
+      ytUrl:             `https://www.youtube.com/watch?v=${ytId}`,
+      addedAt:           Date.now(),
+      source:            'youtube-search',
+    };
+
+    // Save to Firebase
+    await db.ref('videos/' + ytId).set(record);
+
+    // Update local array and sessionStorage home cache
+    allVideos.unshift({ id: ytId, ...record });
+    try {
+      const raw = sessionStorage.getItem('astube_home_videos');
+      const cached = raw ? JSON.parse(raw) : null;
+      if (cached && cached.videos) {
+        cached.videos.unshift({ id: ytId, ...record });
+        cached.ts = Date.now();
+        sessionStorage.setItem('astube_home_videos', JSON.stringify(cached));
+      }
+    } catch(e) {}
+
+    if (btn) { btn.classList.remove('loading'); btn.classList.add('done'); btn.innerHTML = '<i class="fas fa-check"></i>'; }
+    location.href = 'player.html?v=' + ytId;
+
+  } catch(e) {
+    if (btn) { btn.classList.remove('loading'); btn.innerHTML = '<i class="fas fa-play"></i>'; }
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// USERS SEARCH
+// ══════════════════════════════════════════════════════════════════
+async function searchUsersTab(query) {
+  const cont = document.getElementById('users-grid');
+  const meta = document.getElementById('users-meta');
+  const q    = query.trim();
+  if (!q) { cont.innerHTML = ''; meta.textContent = ''; return; }
+
+  meta.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px"></i>Searching users…';
+  cont.innerHTML = '';
+
+  const users = await searchUsers(q);
+  meta.textContent = `${users.length} user${users.length !== 1 ? 's' : ''} for "${q}"`;
+
+  if (!users.length) {
+    cont.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      <p>No users found</p>
+      <small>Try @username or display name</small>
+    </div>`;
+    return;
+  }
+
+  const cards = await Promise.all(users.map(async u => {
+    const subs   = await getSubCount(u.uid);
+    const avHtml = u.photoUrl
+      ? `<img src="${u.photoUrl}" alt="" onerror="this.parentNode.textContent='${escAttr((u.name||'?').charAt(0).toUpperCase())}'">`
+      : escHtml((u.name || '?').charAt(0).toUpperCase());
+    return `<div class="user-card" onclick="location.href='channel.html?uid=${u.uid}'">
+      <div class="user-card-avatar">${avHtml}</div>
+      <div style="flex:1;min-width:0">
+        <div class="user-card-name">${escHtml(u.name || 'Unknown')}</div>
+        <div class="user-card-username">${escHtml(u.username || '')}</div>
+        <div class="user-card-meta">${formatSubs(subs)} subscribers</div>
+      </div>
+      <i class="fas fa-chevron-right" style="color:var(--text2);font-size:13px"></i>
+    </div>`;
+  }));
+  cont.innerHTML = cards.join('');
+}
+
+// ── String helpers ────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(() => {}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

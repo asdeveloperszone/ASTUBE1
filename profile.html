@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Profile - ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="Manage your ASTUBE profile, username, photo, bio, and watch history."/>
+  <meta name="keywords" content="ASTUBE profile, account settings, watch history, username"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/profile.html"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="Your Profile — ASTUBE"/>
+  <meta property="og:description" content="Manage your ASTUBE account and profile."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/profile.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ASTUBE"/>
+<meta name="theme-color" content="#00c851"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.prof-page { max-width: 720px; margin: 0 auto; padding-bottom: 80px; }
+
+/* ── Cover ── */
+.prof-cover {
+  position: relative; width: 100%; height: 160px;
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+  overflow: hidden;
+}
+.prof-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.prof-cover-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.5));
+}
+.prof-edit-btn {
+  position: absolute; top: 12px; right: 12px;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; backdrop-filter: blur(6px);
+  transition: background .2s; z-index: 2;
+}
+.prof-edit-btn:hover { background: rgba(0,0,0,.8); }
+
+/* ── Identity ── */
+.prof-identity {
+  padding: 0 16px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.prof-av-row {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-top: -36px; margin-bottom: 12px;
+}
+.prof-av {
+  width: 72px; height: 72px; border-radius: 50%;
+  border: 3px solid var(--bg);
+  background: var(--red); color: #fff;
+  font-size: 26px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; flex-shrink: 0; position: relative; z-index: 1;
+}
+.prof-av img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.prof-name  { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 2px; }
+.prof-uname { font-size: 13px; color: var(--green); font-weight: 600; margin-bottom: 3px; }
+.prof-email { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.prof-stats { display: flex; gap: 24px; margin-bottom: 10px; }
+.prof-stat-n { font-size: 17px; font-weight: 800; }
+.prof-stat-l { font-size: 11px; color: var(--text2); }
+.prof-bio { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; white-space: pre-line; }
+.prof-action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.prof-action-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 20px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--surf);
+  color: var(--text2); transition: all .2s;
+}
+.prof-action-btn:hover { border-color: var(--green); color: var(--green); }
+.prof-action-btn.danger { color: var(--red); border-color: rgba(255,0,0,.3); }
+.prof-action-btn.danger:hover { background: rgba(255,0,0,.06); border-color: var(--red); }
+
+/* ── Tabs ── */
+.prof-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg); position: sticky; top: var(--hh); z-index: 10;
+}
+.prof-tab {
+  flex: 1; text-align: center; padding: 12px 8px;
+  font-size: 13px; font-weight: 700; color: var(--text2);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all .2s; display: flex; align-items: center;
+  justify-content: center; gap: 6px;
+}
+.prof-tab.active { color: var(--text); border-bottom-color: var(--green); }
+
+.prof-tab-content { display: none; padding: 12px 12px calc(var(--nh, 56px) + 24px); }
+.prof-tab-content.active { display: block; }
+
+/* Videos grid */
+.prof-videos-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+@media(min-width:500px){ .prof-videos-grid { grid-template-columns: repeat(3,1fr); } }
+
+/* History */
+.hist-item {
+  display: flex; gap: 12px; padding: 10px; border-radius: var(--r);
+  cursor: pointer; transition: background .15s; align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.hist-item:last-child { border-bottom: none; }
+.hist-item:hover { background: var(--surf2); }
+.hist-thumb {
+  position: relative; width: 96px; flex-shrink: 0;
+  aspect-ratio: 16/9; background: var(--surf2); border-radius: 6px; overflow: hidden;
+}
+.hist-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.hist-info { flex: 1; min-width: 0; }
+.hist-title {
+  font-size: 13px; font-weight: 600; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 3px;
+}
+.hist-ch { font-size: 12px; color: var(--text2); }
+.hist-when { font-size: 11px; color: var(--text3); }
+.hist-del {
+  background: none; border: none; color: var(--text3);
+  padding: 8px; cursor: pointer; border-radius: 4px; flex-shrink: 0;
+}
+.hist-del:hover { color: var(--red); }
+
+.prof-empty { text-align: center; padding: 48px 24px; color: var(--text2); }
+.prof-empty i { font-size: 36px; opacity: .3; display: block; margin-bottom: 12px; }
+.prof-empty p { font-size: 14px; margin: 0; }
+
+/* ════════ EDIT SHEET ════════ */
+#edit-sheet-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(3px);
+  display: none; align-items: flex-end; justify-content: center;
+}
+#edit-sheet-overlay.open { display: flex; }
+#edit-sheet {
+  background: var(--bg); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 720px; max-height: 92vh;
+  overflow-y: auto; border-top: 1px solid var(--border);
+  animation: sheetUp .28s cubic-bezier(.22,.61,.36,1);
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg); z-index: 1;
+}
+.sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; }
+.sheet-title { font-size: 15px; font-weight: 800; }
+.sheet-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surf2); border: none; color: var(--text2);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.sheet-body { padding: 16px 16px 0; }
+.edit-section-hdr {
+  font-size: 11px; font-weight: 800; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin: 20px 0 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 7px;
+}
+.edit-section-hdr:first-child { margin-top: 0; }
+.edit-field { margin-bottom: 14px; }
+.edit-label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--text2); margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.edit-input {
+  width: 100%; height: 42px; font-size: 14px; padding: 0 12px;
+  box-sizing: border-box; border-radius: var(--r);
+  border: 1.5px solid var(--border); background: var(--surf);
+  color: var(--text); outline: none; transition: border-color .2s;
+}
+.edit-input:focus { border-color: var(--green); }
+.edit-input-prefix {
+  display: flex; align-items: center;
+  border: 1.5px solid var(--border); border-radius: var(--r);
+  background: var(--surf); overflow: hidden; transition: border-color .2s;
+}
+.edit-input-prefix:focus-within { border-color: var(--green); }
+.edit-prefix-at {
+  padding: 0 12px; font-weight: 800; color: var(--green);
+  background: var(--surf2); height: 42px; display: flex;
+  align-items: center; border-right: 1px solid var(--border); font-size: 15px;
+}
+.edit-input-prefix input {
+  flex: 1; height: 42px; padding: 0 12px;
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 14px;
+}
+.edit-tip { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.6; }
+.edit-tip a { color: var(--red); }
+.edit-bio {
+  width: 100%; min-height: 96px; padding: 10px 12px;
+  border-radius: var(--r); border: 1.5px solid var(--border);
+  background: var(--surf); color: var(--text); font-size: 14px;
+  line-height: 1.6; resize: vertical; outline: none;
+  font-family: inherit; transition: border-color .2s; box-sizing: border-box;
+}
+.edit-bio:focus { border-color: var(--green); }
+.edit-bio-counter { font-size: 11px; color: var(--text2); text-align: right; margin-top: 2px; }
+.edit-bio-counter.warn { color: #e6a000; }
+.edit-bio-counter.over { color: var(--red); }
+.edit-photo-preview {
+  display: none; align-items: center; gap: 12px;
+  margin-top: 8px; padding: 10px 12px;
+  background: var(--surf2); border: 1px solid var(--border); border-radius: var(--r);
+}
+.edit-photo-preview.show { display: flex; }
+.edit-preview-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--border); overflow: hidden; flex-shrink: 0;
+}
+.edit-preview-av img { width: 100%; height: 100%; object-fit: cover; }
+.edit-preview-status .ok  { color: #4caf50; font-weight: 600; font-size: 12px; }
+.edit-preview-status .err { color: var(--red); font-weight: 600; font-size: 12px; }
+.edit-preview-status .chk { color: var(--text2); font-size: 12px; }
+.edit-cover-preview {
+  display: none; margin-top: 8px; border-radius: var(--r);
+  overflow: hidden; border: 1px solid var(--border);
+}
+.edit-cover-preview.show { display: block; }
+.edit-cover-preview img { width: 100%; height: 100px; object-fit: cover; display: block; }
+.edit-cover-info { padding: 5px 10px; font-size: 11px; color: var(--text2); }
+.remove-link {
+  font-size: 12px; color: var(--red); cursor: pointer;
+  background: none; border: none; padding: 0; margin-top: 5px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.sheet-save-row {
+  padding: 14px 16px 28px; border-top: 1px solid var(--border);
+  position: sticky; bottom: 0; background: var(--bg);
+  display: flex; gap: 8px;
+}
+.sheet-save-btn {
+  flex: 1; height: 44px; border-radius: var(--r);
+  background: var(--green); color: #fff; border: none;
+  font-size: 14px; font-weight: 800; cursor: pointer; transition: opacity .2s;
+}
+.sheet-save-btn:hover { opacity: .88; }
+.sheet-cancel-btn {
+  height: 44px; padding: 0 18px; border-radius: var(--r);
+  background: var(--surf2); color: var(--text2); border: none;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-search">
+    <input id="search-input" type="text" placeholder="Search ASTUBE" autocomplete="off"/>
+    <button class="sbtn" onclick="doSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </button>
+  </div>
+  <div class="hdr-right">
+    <div class="backend-status" title="Backend status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text"></span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'" style="display:none">Sign In</button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <a href="index.html"     class="s-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html"    class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Video</a>
+  <a href="profile.html"   class="s-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<main class="main" style="padding:0">
+<div class="prof-page">
+
+  <!-- Cover -->
+  <div class="prof-cover" id="prof-cover">
+    <div class="prof-cover-overlay"></div>
+    <button class="prof-edit-btn" onclick="openEditSheet()" title="Edit Profile">
+      <i class="fas fa-pen"></i>
+    </button>
+  </div>
+
+  <!-- Identity -->
+  <div class="prof-identity">
+    <div class="prof-av-row">
+      <div class="prof-av" id="prof-av"></div>
+      <button class="prof-action-btn" onclick="location.href='analytics.html'">
+        <i class="fas fa-chart-bar"></i> Analytics
+      </button>
+    </div>
+    <div class="prof-name"  id="prof-name">Loading…</div>
+    <div class="prof-uname" id="prof-uname"></div>
+    <div class="prof-email" id="prof-email"></div>
+    <div class="prof-stats">
+      <div class="prof-stat">
+        <div class="prof-stat-n" id="prof-videos-count">—</div>
+        <div class="prof-stat-l">Videos</div>
+      </div>
+      <div class="prof-stat">
+        <div class="prof-stat-n" id="prof-subs-count">—</div>
+        <div class="prof-stat-l">Subscribers</div>
+      </div>
+    </div>
+    <div class="prof-bio" id="prof-bio" style="display:none"></div>
+    <div class="prof-action-row">
+      <button class="prof-action-btn" onclick="openEditSheet()" style="border-color:var(--green);color:var(--green)">
+        <i class="fas fa-pen"></i> Edit Profile
+      </button>
+      <button class="prof-action-btn" onclick="location.href='channel.html?uid='+currentUser.uid">
+        <i class="fas fa-eye"></i> View Channel
+      </button>
+      <button class="prof-action-btn danger" onclick="confirmLogout()">
+        <i class="fas fa-sign-out-alt"></i> Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="prof-tabs">
+    <div class="prof-tab active" id="tab-videos-btn" onclick="switchTab('videos')">
+      <i class="fas fa-film"></i> My Videos
+    </div>
+    <div class="prof-tab" id="tab-history-btn" onclick="switchTab('history')">
+      <i class="fas fa-history"></i> History
+    </div>
+  </div>
+
+  <!-- My Videos -->
+  <div class="prof-tab-content active" id="tab-videos">
+    <div id="my-videos-grid" class="prof-videos-grid">
+      <div style="grid-column:1/-1;padding:48px 0;text-align:center">
+        <div class="spinner" style="margin:0 auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Watch History -->
+  <div class="prof-tab-content" id="tab-history">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="prof-action-btn danger" onclick="confirmClear()" style="font-size:12px;padding:6px 12px">
+        <i class="fas fa-trash"></i> Clear All
+      </button>
+    </div>
+    <div id="history-list">
+      <div style="text-align:center;padding:48px"><div class="spinner" style="margin:0 auto"></div></div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<!-- Edit Profile Sheet -->
+<div id="edit-sheet-overlay" onclick="onOverlayClick(event)">
+  <div id="edit-sheet">
+
+    <div class="sheet-handle-row">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Edit Profile</div>
+      <button class="sheet-close" onclick="closeEditSheet()"><i class="fas fa-xmark"></i></button>
+    </div>
+
+    <div class="sheet-body">
+
+      <div class="edit-section-hdr"><i class="fas fa-user"></i> Profile Info</div>
+
+      <div class="edit-field">
+        <label class="edit-label">Display Name</label>
+        <input class="edit-input" type="text" id="name-input" placeholder="Your name" maxlength="40"/>
+      </div>
+
+      <div class="edit-field">
+        <label class="edit-label">Username</label>
+        <div class="edit-input-prefix">
+          <span class="edit-prefix-at">@</span>
+          <input type="text" id="username-input" placeholder="yourname123" maxlength="30"/>
+        </div>
+        <div class="edit-tip">Min 8 chars · letters, numbers, underscore only</div>
+      </div>
+
+      <div class="edit-field">
+        <label class="edit-label">Bio</label>
+        <textarea class="edit-bio" id="bio-input"
+          placeholder="Tell people about yourself…" maxlength="1999"
+          oninput="onBioInput(this)"></textarea>
+        <div class="edit-bio-counter" id="bio-counter">0 / 1999</div>
+      </div>
+
+      <div class="edit-section-hdr"><i class="fas fa-image"></i> Photos</div>
+
+      <div class="edit-field">
+        <label class="edit-label">Profile Photo URL</label>
+        <input class="edit-input" type="url" id="photo-url-input"
+          placeholder="https://…/photo.jpg" autocomplete="off"
+          oninput="onPhotoUrlInput(this.value)"/>
+        <div class="edit-tip">
+          Paste any direct image link (.jpg / .png / .gif) ·
+          Tip: <a href="https://github.com" target="_blank">GitHub Raw</a> or
+          <a href="https://imgur.com" target="_blank">Imgur</a>
+        </div>
+        <div class="edit-photo-preview" id="photo-preview">
+          <div class="edit-preview-av"><img id="preview-img" src="" alt=""/></div>
+          <div class="edit-preview-status" id="preview-info"></div>
+        </div>
+        <div id="remove-photo-row" style="display:none">
+          <button class="remove-link" onclick="removePhoto()">
+            <i class="fas fa-times"></i> Remove photo
+          </button>
+        </div>
+      </div>
+
+      <div class="edit-field">
+        <label class="edit-label">Cover Photo URL</label>
+        <input class="edit-input" type="url" id="cover-url-input"
+          placeholder="https://…/cover.jpg" autocomplete="off"
+          oninput="onCoverUrlInput(this.value)"/>
+        <div class="edit-tip">Recommended 2560×1440px (16:9) · paste a direct image link</div>
+        <div class="edit-cover-preview" id="cover-preview">
+          <img id="cover-preview-img" src="" alt=""/>
+          <div class="edit-cover-info" id="cover-preview-info"></div>
+        </div>
+        <div id="remove-cover-row" style="display:none">
+          <button class="remove-link" onclick="removeCover()">
+            <i class="fas fa-times"></i> Remove cover
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sheet-save-row">
+      <button class="sheet-cancel-btn" onclick="closeEditSheet()">Cancel</button>
+      <button class="sheet-save-btn" onclick="saveProfile()">
+        <i class="fas fa-check"></i> Save Changes
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<nav class="bnav">
+  <a href="index.html"     class="nav-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html"    class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html"   class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<script>
+let currentUser = null;
+let userData    = {};
+let previewTimer = null;
+
+async function init() {
+  currentUser = await requireAuth();
+  userData = (await getUserData(currentUser.uid)) || {};
+  if (!userData.name) {
+    await createUserRecord(currentUser);
+    userData = (await getUserData(currentUser.uid)) || {};
+  }
+  renderProfile();
+  loadMyVideos();
+  loadHistory();
+}
+
+function switchTab(tab) {
+  ['videos','history'].forEach(t => {
+    document.getElementById('tab-'+t+'-btn').classList.toggle('active', t === tab);
+    document.getElementById('tab-'+t).classList.toggle('active', t === tab);
+  });
+}
+
+function renderProfile() {
+  const u = currentUser, d = userData;
+  // Cover
+  if (d.coverUrl) {
+    const img = document.createElement('img');
+    img.src = d.coverUrl; img.alt = '';
+    img.onerror = () => img.remove();
+    const cover = document.getElementById('prof-cover');
+    cover.insertBefore(img, cover.firstChild);
+  }
+  // Avatar
+  setAvatarEl(document.getElementById('prof-av'), d.photoUrl || u.photoURL || null, d.name || 'U');
+  // Text
+  document.getElementById('prof-name').textContent  = d.name || u.displayName || 'ASTUBEr';
+  document.getElementById('prof-uname').textContent = d.username || '';
+  document.getElementById('prof-email').textContent = u.email || '';
+  // Bio
+  if (d.bio && d.bio.trim()) {
+    const bioEl = document.getElementById('prof-bio');
+    bioEl.textContent = d.bio.trim();
+    bioEl.style.display = 'block';
+  }
+  // Stats (async)
+  getSubCount(u.uid).then(n => {
+    document.getElementById('prof-subs-count').textContent = formatSubs(n);
+  });
+}
+
+async function loadMyVideos() {
+  const grid = document.getElementById('my-videos-grid');
+  try {
+    const all  = await loadAllVideos();
+    const mine = all.filter(v => v.addedByUid === currentUser.uid || v.addedBy === currentUser.uid);
+    document.getElementById('prof-videos-count').textContent = mine.length;
+    if (!mine.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1" class="prof-empty">
+        <i class="fas fa-film"></i><p>No videos yet</p>
+        <small><a href="add-video.html" style="color:var(--green)">Add your first video</a></small>
+      </div>`;
+      return;
+    }
+    await warmPhotoCache(mine.map(v => v.addedByUid).filter(Boolean));
+    grid.innerHTML = mine.map(v => renderVideoCard(v.id, v, { showEdit: true })).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text2)">Failed to load</div>`;
+  }
+}
+
+function editVideo(id) { location.href = 'add-video.html?edit=' + id; }
+async function deleteVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  try {
+    await db.ref('videos/' + id).remove();
+    showToast('Video deleted', 'success');
+    loadMyVideos();
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function loadHistory() {
+  const list = document.getElementById('history-list');
+  try {
+    const history = await getUserHistory(currentUser.uid);
+    if (!history.length) {
+      list.innerHTML = `<div class="prof-empty"><i class="fas fa-history"></i><p>No watch history yet</p></div>`;
+      return;
+    }
+    const items = (await Promise.all(history.map(async h => {
+      const v = await getVideo(h.videoId);
+      return v ? { watchedAt: h.watchedAt, ...v, id: h.videoId } : null;
+    }))).filter(Boolean);
+    if (!items.length) {
+      list.innerHTML = `<div class="prof-empty"><i class="fas fa-history"></i><p>No videos found</p></div>`;
+      return;
+    }
+    list.innerHTML = items.map(v => {
+      const thumb = v.thumbnail || `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`;
+      return `
+      <div class="hist-item" onclick="location.href='player.html?v=${v.id}'">
+        <div class="hist-thumb">
+          <img src="${thumb}" loading="lazy" onerror="this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'"/>
+        </div>
+        <div class="hist-info">
+          <p class="hist-title">${v.title || 'Untitled'}</p>
+          <p class="hist-ch">${v.addedByName || v.channel || ''}</p>
+          <p class="hist-when">Watched ${timeAgo(v.watchedAt)}</p>
+        </div>
+        <button class="hist-del" onclick="event.stopPropagation();delHistory('${v.id}',this.closest('.hist-item'))">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="prof-empty"><i class="fas fa-history"></i><p>Failed to load</p></div>`;
+  }
+}
+
+async function delHistory(videoId, el) {
+  await removeFromHistory(videoId);
+  el.remove();
+  showToast('Removed from history', 'info');
+}
+
+async function confirmClear() {
+  if (!confirm('Clear all watch history?')) return;
+  await clearHistory();
+  loadHistory();
+  showToast('History cleared', 'success');
+}
+
+// ── Edit Sheet ────────────────────────────────
+function openEditSheet() {
+  const d = userData;
+  document.getElementById('name-input').value = d.name || currentUser.displayName || '';
+  document.getElementById('username-input').value = (d.username || '').replace(/^@/, '');
+  document.getElementById('bio-input').value = d.bio || '';
+  onBioInput(document.getElementById('bio-input'));
+  const photoInput = document.getElementById('photo-url-input');
+  photoInput.value = d.photoUrl || '';
+  if (d.photoUrl) showPreview(d.photoUrl);
+  document.getElementById('remove-photo-row').style.display = d.photoUrl ? 'block' : 'none';
+  const coverInput = document.getElementById('cover-url-input');
+  coverInput.value = d.coverUrl || '';
+  if (d.coverUrl) onCoverUrlInput(d.coverUrl);
+  document.getElementById('remove-cover-row').style.display = d.coverUrl ? 'block' : 'none';
+  document.getElementById('edit-sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditSheet() {
+  document.getElementById('edit-sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('edit-sheet-overlay')) closeEditSheet();
+}
+
+// ── Photo Preview ─────────────────────────────
+function onPhotoUrlInput(val) {
+  clearTimeout(previewTimer);
+  if (!val.trim()) { hidePreview(); return; }
+  previewTimer = setTimeout(() => showPreview(val.trim()), 700);
+}
+
+function showPreview(url) {
+  const wrap = document.getElementById('photo-preview');
+  const img  = document.getElementById('preview-img');
+  const info = document.getElementById('preview-info');
+  wrap.classList.add('show');
+  info.innerHTML = '<span class="chk">Checking…</span>';
+  img.src = '';
+  const test = new Image();
+  test.onload = () => {
+    img.src = url;
+    info.innerHTML = `<span class="ok"><i class="fas fa-check-circle"></i> Valid image</span>`;
+  };
+  test.onerror = () => {
+    info.innerHTML = `<span class="err"><i class="fas fa-times-circle"></i> Cannot load — check URL</span>`;
+  };
+  test.src = url;
+}
+
+function hidePreview() {
+  document.getElementById('photo-preview').classList.remove('show');
+  document.getElementById('preview-img').src = '';
+}
+
+// ── Cover Preview ─────────────────────────────
+function onCoverUrlInput(url) {
+  const preview = document.getElementById('cover-preview');
+  const img     = document.getElementById('cover-preview-img');
+  const info    = document.getElementById('cover-preview-info');
+  if (!url || !url.trim()) { preview.classList.remove('show'); img.src = ''; return; }
+  preview.classList.add('show');
+  info.textContent = 'Checking…';
+  img.src = '';
+  const test = new Image();
+  test.onload = () => {
+    img.src = url;
+    const w = test.naturalWidth, h = test.naturalHeight;
+    info.textContent = `${w}×${h}px ${w >= 1024 ? '✓' : '— min 1024×576 recommended'}`;
+  };
+  test.onerror = () => { info.textContent = 'Cannot load — use a direct image link'; };
+  test.src = url;
+}
+
+async function removeCover() {
+  if (!confirm('Remove cover photo?')) return;
+  try {
+    await db.ref('users/' + currentUser.uid + '/coverUrl').set('');
+    userData.coverUrl = '';
+    document.getElementById('cover-url-input').value = '';
+    document.getElementById('cover-preview').classList.remove('show');
+    document.getElementById('cover-preview-img').src = '';
+    document.getElementById('remove-cover-row').style.display = 'none';
+    showToast('Cover removed', 'info');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ── Bio counter ───────────────────────────────
+function onBioInput(el) {
+  const len = (el.value || '').length;
+  const c   = document.getElementById('bio-counter');
+  if (!c) return;
+  c.textContent = len + ' / 1999';
+  c.className = 'edit-bio-counter' + (len >= 1999 ? ' over' : len > 1800 ? ' warn' : '');
+}
+
+// ── Save Profile ──────────────────────────────
+async function saveProfile() {
+  const name = (document.getElementById('name-input').value || '').trim();
+  if (!name)            { showToast('Name cannot be empty', 'error'); return; }
+  if (name.length > 40) { showToast('Name max 40 characters', 'error'); return; }
+
+  const newUname = (document.getElementById('username-input').value || '').trim();
+  const curUname = (userData.username || '').replace(/^@/, '');
+  if (newUname && newUname !== curUname) {
+    try {
+      const saved = await setUsername(currentUser.uid, newUname);
+      userData.username = saved;
+      document.getElementById('prof-uname').textContent = saved;
+    } catch(e) { showToast('Username error: ' + e.message, 'error'); return; }
+  }
+
+  const photoUrl = (document.getElementById('photo-url-input').value || '').trim();
+  const coverUrl = (document.getElementById('cover-url-input').value || '').trim();
+  if (photoUrl) { try { new URL(photoUrl); } catch { showToast('Invalid photo URL', 'error'); return; } }
+  if (coverUrl) { try { new URL(coverUrl); } catch { showToast('Invalid cover URL', 'error'); return; } }
+  const bioVal = (document.getElementById('bio-input').value || '').trim().slice(0, 1999);
+
+  try {
+    await db.ref('users/' + currentUser.uid).update({ name, photoUrl: photoUrl || '', coverUrl: coverUrl || '', bio: bioVal });
+    await currentUser.updateProfile({ displayName: name }).catch(() => {});
+    userData = { ...userData, name, photoUrl: photoUrl || '', coverUrl: coverUrl || '', bio: bioVal };
+
+    // Update channel view
+    const photo = photoUrl || currentUser.photoURL || null;
+    setAvatarEl(document.getElementById('prof-av'), photo, name);
+    document.getElementById('prof-name').textContent = name;
+    const bioEl = document.getElementById('prof-bio');
+    if (bioVal) { bioEl.textContent = bioVal; bioEl.style.display = 'block'; }
+    else { bioEl.style.display = 'none'; }
+    document.getElementById('remove-photo-row').style.display = photoUrl ? 'block' : 'none';
+    document.getElementById('remove-cover-row').style.display = coverUrl ? 'block' : 'none';
+
+    // Update cover banner
+    const cover = document.getElementById('prof-cover');
+    const existingImg = cover.querySelector('img');
+    if (existingImg) existingImg.remove();
+    if (coverUrl) {
+      const newImg = document.createElement('img');
+      newImg.src = coverUrl; newImg.alt = '';
+      newImg.onerror = () => newImg.remove();
+      cover.insertBefore(newImg, cover.firstChild);
+    }
+
+    // Update header avatar
+    const hdrAv = document.getElementById('user-avatar');
+    if (hdrAv) setAvatarEl(hdrAv, photo, name);
+
+    closeEditSheet();
+    showToast('Profile saved!', 'success');
+  } catch(e) { showToast('Save failed: ' + e.message, 'error'); }
+}
+
+async function removePhoto() {
+  if (!confirm('Remove custom photo?')) return;
+  try {
+    await db.ref('users/' + currentUser.uid + '/photoUrl').set('');
+    userData.photoUrl = '';
+    document.getElementById('photo-url-input').value = '';
+    hidePreview();
+    document.getElementById('remove-photo-row').style.display = 'none';
+    const fallback = currentUser.photoURL || null;
+    setAvatarEl(document.getElementById('prof-av'), fallback, userData.name || 'U');
+    const hdrAv = document.getElementById('user-avatar');
+    if (hdrAv) setAvatarEl(hdrAv, fallback, userData.name || 'U');
+    showToast('Photo removed', 'info');
+  } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+function confirmLogout() {
+  if (!confirm('Sign out of ASTUBE?')) return;
+  auth.signOut().then(() => location.href = 'index.html');
+}
+
+function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (q) location.href = 'search.html?q=' + encodeURIComponent(q);
+}
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

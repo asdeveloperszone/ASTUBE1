@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="ASTUBE is a free video streaming platform. Watch, discover, and share videos from YouTube and ASTUBE creators. Fast, ad-free, and mobile-friendly."/>
+  <meta name="keywords" content="ASTUBE, video streaming, watch videos, YouTube videos, free streaming, online video player, ASDeveloper, Pakistani videos, video platform"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/index.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="ASTUBE — Stream & Discover Videos"/>
+  <meta property="og:description" content="Watch and share videos on ASTUBE — fast, free, and mobile-friendly video streaming."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/index.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="ASTUBE — Stream & Discover Videos"/>
+  <meta name="twitter:description" content="Watch and share videos on ASTUBE — fast, free, and mobile-friendly video streaming."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ASTUBE"/>
+<meta name="theme-color" content="#00c851"/>
+<!-- Firebase MUST load before config.js -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<!-- PWA Splash Screen (index.html only) -->
+<div id="pwa-splash">
+  <div class="sp-bg-circle1"></div>
+  <div class="sp-bg-circle2"></div>
+  <div class="sp-bg-circle3"></div>
+  <div class="sp-content">
+    <div class="sp-icon-wrap">
+      <div class="sp-ring2"></div>
+      <div class="sp-ring"></div>
+      <img class="sp-icon" src="icon.png" alt="ASTUBE" onerror="this.style.background='#1a1a1a'"/>
+    </div>
+    <div class="sp-name">AS<span class="red">T</span><span class="green">UBE</span></div>
+    <div class="sp-tagline">Stream &middot; Discover &middot; Enjoy</div>
+    <div class="sp-dots"><i></i><i></i><i></i></div>
+    <div class="sp-spinner-wrap">
+      <div class="sp-spinner"></div>
+      <div class="sp-spinner-inner"></div>
+    </div>
+  </div>
+  <div class="sp-bottom">Made with &#10084;&#65039; by <span>ASDeveloper</span></div>
+</div>
+<script>
+(function() {
+  function hideSplash() {
+    const s = document.getElementById('pwa-splash');
+    if (s) s.classList.add('hidden');
+  }
+  // Show splash only on very first open this session
+  const seen = sessionStorage.getItem('astube_splash_shown');
+  if (seen) {
+    // Already seen — hide immediately with no delay
+    document.getElementById('pwa-splash').style.display = 'none';
+  } else {
+    sessionStorage.setItem('astube_splash_shown', '1');
+    if (document.readyState === 'complete') {
+      setTimeout(hideSplash, 2200);
+    } else {
+      window.addEventListener('load', () => setTimeout(hideSplash, 2200));
+    }
+  }
+})();
+</script>
+
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-search">
+    <input id="search-input" type="text" placeholder="Search ASTUBE" autocomplete="off"/>
+    <button class="sbtn" onclick="doSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
+  <div class="hdr-right">
+    <!-- Backend status indicator -->
+    <div class="backend-status" title="Termux backend status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text">Checking…</span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Sign In
+    </button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <a href="index.html" class="s-link active">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
+  </a>
+  <a href="search.html" class="s-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
+  </a>
+  <a href="add-video.html" class="s-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Video
+  </a>
+  <a href="profile.html" class="s-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+  </a>
+  <div class="s-div"></div>
+  <div class="s-section-title">Categories</div>
+  <a class="s-link" onclick="setCat('trending',this)">Trending</a>
+  <a class="s-link" onclick="setCat('music',this)">Music</a>
+  <a class="s-link" onclick="setCat('gaming',this)">Gaming</a>
+  <a class="s-link" onclick="setCat('news',this)">News</a>
+  <a class="s-link" onclick="setCat('sports',this)">Sports</a>
+  <a class="s-link" onclick="setCat('education',this)">Education</a>
+  <a class="s-link" onclick="setCat('entertainment',this)">Entertainment</a>
+  <a class="s-link" onclick="setCat('technology',this)">Technology</a>
+  <a class="s-link" onclick="setCat('islam',this)">Islam</a>
+  <a class="s-link" onclick="setCat('pir_naseer',this)">Pir Naseer</a>
+</nav>
+
+<main class="main">
+  <div class="cat-bar" id="cat-bar">
+    <button class="cat-btn active" onclick="setCat('all',this)">All</button>
+    <button class="cat-btn" onclick="setCat('trending',this)">Trending</button>
+    <button class="cat-btn" onclick="setCat('music',this)">Music</button>
+    <button class="cat-btn" onclick="setCat('gaming',this)">Gaming</button>
+    <button class="cat-btn" onclick="setCat('news',this)">News</button>
+    <button class="cat-btn" onclick="setCat('sports',this)">Sports</button>
+    <button class="cat-btn" onclick="setCat('education',this)">Education</button>
+    <button class="cat-btn" onclick="setCat('entertainment',this)">Entertainment</button>
+    <button class="cat-btn" onclick="setCat('technology',this)">Technology</button>
+    <button class="cat-btn" onclick="setCat('islam',this)">Islam</button>
+    <button class="cat-btn" onclick="setCat('pir_naseer',this)">Pir Naseer</button>
+  </div>
+
+
+  <!-- ASTUBE Official Subscribe Banner -->
+  <div class="astube-sub-banner" id="astube-sub-banner" style="display:none">
+    <a class="astube-sub-logo" id="astube-banner-logo" href="channel.html?uid=vHuiPCnIV1e7rGSUDqCz52ccZpa2" onclick="event.stopPropagation()">AS</a>
+    <div class="astube-sub-text">
+      <b>ASTUBE Official</b>
+      <small>Subscribe to get updates &amp; featured content</small>
+    </div>
+    <div class="astube-sub-action">
+      <button class="astube-sub-btn" id="astube-sub-btn">
+        <i class="fas fa-bell"></i> Subscribe
+      </button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="video-card"><div class="card-thumb skel-box"></div><div class="card-info"><div class="card-avatar skel-box" style="border-radius:50%"></div><div class="card-meta" style="flex:1"><div class="skel-box" style="height:14px;width:88%;margin-bottom:6px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:55%;margin-bottom:4px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:38%;border-radius:4px"></div></div></div></div>
+    <div class="video-card"><div class="card-thumb skel-box"></div><div class="card-info"><div class="card-avatar skel-box" style="border-radius:50%"></div><div class="card-meta" style="flex:1"><div class="skel-box" style="height:14px;width:88%;margin-bottom:6px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:55%;margin-bottom:4px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:38%;border-radius:4px"></div></div></div></div>
+    <div class="video-card"><div class="card-thumb skel-box"></div><div class="card-info"><div class="card-avatar skel-box" style="border-radius:50%"></div><div class="card-meta" style="flex:1"><div class="skel-box" style="height:14px;width:88%;margin-bottom:6px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:55%;margin-bottom:4px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:38%;border-radius:4px"></div></div></div></div>
+    <div class="video-card"><div class="card-thumb skel-box"></div><div class="card-info"><div class="card-avatar skel-box" style="border-radius:50%"></div><div class="card-meta" style="flex:1"><div class="skel-box" style="height:14px;width:88%;margin-bottom:6px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:55%;margin-bottom:4px;border-radius:4px"></div><div class="skel-box" style="height:12px;width:38%;border-radius:4px"></div></div></div></div>
+  </div>
+  <div class="load-more-wrap">
+    <button class="btn btn-outline" id="load-more-btn" onclick="loadMore()" style="display:none">Load more</button>
+  </div>
+</main>
+
+<nav class="bnav">
+  <a href="index.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<script>
+let all=[], cat='all', shown=12;
+
+const _VIDEO_CACHE_KEY = 'astube_home_videos';
+const _VIDEO_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+function _saveVideoCache(videos) {
+  try {
+    sessionStorage.setItem(_VIDEO_CACHE_KEY, JSON.stringify({ videos, ts: Date.now() }));
+  } catch(e) {}
+}
+
+function _loadVideoCache() {
+  try {
+    const raw = sessionStorage.getItem(_VIDEO_CACHE_KEY);
+    if (!raw) return null;
+    const { videos, ts } = JSON.parse(raw);
+    if (Date.now() - ts > _VIDEO_CACHE_TTL) return null;
+    // Re-sort in case order was off when saved
+    videos.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    return videos;
+  } catch(e) { return null; }
+}
+
+async function init() {
+  // ── Step 1: Show cached videos instantly (zero wait) ──
+  const cached = _loadVideoCache();
+  if (cached && cached.length) {
+    all = cached;
+    const uids = all.map(v => v.addedByUid || '').filter(Boolean);
+    if (window.ASTUBE_OFFICIAL_UID) uids.push(window.ASTUBE_OFFICIAL_UID);
+    await warmPhotoCache(uids);
+    render();
+  } else {
+    // No cache — show skeleton while loading
+    document.getElementById('grid').innerHTML = _skeletonHTML();
+  }
+
+  // ── Step 2: Sync from Firebase silently in background ──
+  // Uses realtime listener — auto-updates if new video added
+  db.ref('videos').on('value', async snap => {
+    const fresh = [];
+    if (snap.exists()) {
+      snap.forEach(c => {
+        const v = c.val();
+        if (v && typeof v === 'object') fresh.push({ id: c.key, ...v });
+      });
+      // Sort newest first by addedAt timestamp
+      fresh.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    }
+
+    // Only re-render if something actually changed
+    const prevIds = all.map(v => v.id).join(',');
+    const nextIds = fresh.map(v => v.id).join(',');
+    const changed = prevIds !== nextIds;
+    all = fresh;
+    _saveVideoCache(fresh);
+
+    if (changed || all.length === 0) {
+      const uids = all.map(v => v.addedByUid || '').filter(Boolean);
+      if (window.ASTUBE_OFFICIAL_UID) uids.push(window.ASTUBE_OFFICIAL_UID);
+      await warmPhotoCache(uids);
+      render();
+    }
+  });
+
+  // Detach Firebase listener on page leave to avoid memory leaks
+  window.addEventListener('pagehide', () => db.ref('videos').off('value'));
+
+  // Auth-dependent UI
+  auth.onAuthStateChanged(() => initASTUBEBanner());
+
+  if (sessionStorage.getItem('astube_needs_username')) {
+    sessionStorage.removeItem('astube_needs_username');
+    auth.onAuthStateChanged(user => {
+      if (user) checkAndPromptUsername(user);
+    });
+  }
+}
+
+function _skeletonHTML() {
+  return Array(6).fill(0).map(() => `
+    <div class="video-card" style="pointer-events:none">
+      <div class="card-thumb" style="background:var(--surf2);border-radius:var(--r)"></div>
+      <div class="card-info">
+        <div class="card-avatar" style="background:var(--surf2)"></div>
+        <div class="card-meta">
+          <div style="height:14px;background:var(--surf2);border-radius:4px;margin-bottom:6px;width:90%"></div>
+          <div style="height:11px;background:var(--surf2);border-radius:4px;width:60%"></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function render(){
+  const grid = document.getElementById('grid');
+  const filtered = cat==='all' ? all : all.filter(v=>v.category===cat);
+  const slice = filtered.slice(0, shown);
+  document.getElementById('load-more-btn').style.display = filtered.length>shown ? 'inline-flex' : 'none';
+  if(!slice.length){
+    grid.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="currentColor" stroke="none"/></svg><p>No videos yet</p><small>Be the first to <a href="add-video.html">add a video</a></small></div>`;
+    return;
+  }
+  grid.innerHTML = slice.map(v=>renderVideoCard(v.id,v)).join('');
+}
+
+function setCat(c, el){
+  cat=c; shown=12;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.s-link').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  render();
+}
+
+function loadMore(){ shown+=12; render(); }
+
+function doSearch(){
+  const q=document.getElementById('search-input').value.trim();
+  if(q) location.href=`search.html?q=${encodeURIComponent(q)}`;
+}
+
+document.getElementById('search-input').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+
+
+// ── ASTUBE Official Subscribe Banner ─────────────────────────────
+async function initASTUBEBanner() {
+  const officialUid = window.ASTUBE_OFFICIAL_UID;
+  if (!officialUid || officialUid === 'ASTUBE_OFFICIAL_UID_HERE') return;
+
+  const banner = document.getElementById('astube-sub-banner');
+  const btn    = document.getElementById('astube-sub-btn');
+  if (!banner || !btn) return;
+
+  // Load ASTUBE profile photo and inject into banner logo
+  const logoEl = document.getElementById('astube-banner-logo');
+  if (logoEl) {
+    const photo = await getUserPhoto(officialUid);
+    if (photo) {
+      logoEl.style.background = 'none';
+      logoEl.style.padding    = '0';
+      logoEl.style.overflow   = 'hidden';
+      logoEl.innerHTML = `<img src="${photo}" alt="ASTUBE"
+        style="width:100%;height:100%;object-fit:cover;border-radius:12px"
+        onerror="this.parentNode.textContent='AS';this.parentNode.style.background='var(--red)'"/>`;
+    }
+  }
+
+  const viewer = auth.currentUser;
+
+  // Don't show banner to ASTUBE account itself
+  if (viewer && viewer.uid === officialUid) return;
+
+  banner.style.display = 'flex';
+
+  if (!viewer) {
+    btn.onclick = () => location.href = 'login.html';
+    return;
+  }
+
+  // Check subscription status
+  const subbed = await isSubscribed(viewer.uid, officialUid);
+  renderASTUBEBtn(subbed, officialUid, viewer.uid);
+}
+
+function renderASTUBEBtn(subbed, officialUid, viewerUid) {
+  const btn = document.getElementById('astube-sub-btn');
+  if (!btn) return;
+  if (subbed) {
+    btn.className = 'astube-sub-btn subbed';
+    btn.innerHTML = '<i class="fas fa-check"></i> Subscribed';
+  } else {
+    btn.className = 'astube-sub-btn';
+    btn.innerHTML = '<i class="fas fa-bell"></i> Subscribe';
+  }
+  btn.onclick = () => toggleASTUBESub(officialUid, viewerUid);
+}
+
+async function toggleASTUBESub(officialUid, viewerUid) {
+  const btn = document.getElementById('astube-sub-btn');
+  if (!btn) return;
+  if (!auth.currentUser) { location.href = 'login.html'; return; }
+  btn.className = 'astube-sub-btn loading';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  try {
+    const nowSubbed = await toggleSubscribe(viewerUid, officialUid);
+    renderASTUBEBtn(nowSubbed, officialUid, viewerUid);
+    showToast(nowSubbed ? 'Subscribed to ASTUBE!' : 'Unsubscribed from ASTUBE', nowSubbed ? 'success' : 'info');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+    renderASTUBEBtn(false, officialUid, viewerUid);
+  }
+}
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sign In - ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="Sign in to ASTUBE with Google or Email to like videos, comment, subscribe, and add videos."/>
+  <meta name="keywords" content="ASTUBE login, sign in, Google login, ASTUBE account"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/login.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="Sign In — ASTUBE"/>
+  <meta property="og:description" content="Sign in to your ASTUBE account."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/login.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="Sign In — ASTUBE"/>
+  <meta name="twitter:description" content="Sign in to your ASTUBE account."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ASTUBE"/>
+<meta name="theme-color" content="#00c851"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;padding-top:calc(var(--hh) + 24px)}
+.auth-card{width:100%;max-width:380px;background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:32px 28px}
+.auth-logo{font-size:28px;font-weight:700;color:var(--red);text-align:center;margin-bottom:4px;letter-spacing:-1px}
+.auth-logo span{color:var(--text)}
+.auth-tag{text-align:center;color:var(--text2);font-size:14px;margin-bottom:28px}
+.g-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;background:#fff;color:#3c4043;border:none;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;transition:background .2s;margin-bottom:20px}
+.g-btn:hover{background:#f1f1f1}
+.g-btn img{width:20px;height:20px}
+.g-btn:disabled{opacity:.6;pointer-events:none}
+.divider{display:flex;align-items:center;gap:12px;color:var(--text3);font-size:13px;margin-bottom:20px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.pw-wrap{position:relative}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;display:flex;align-items:center}
+.switch-link{text-align:center;font-size:13px;color:var(--text2);margin-top:16px}
+.switch-link a{color:#3ea6ff;cursor:pointer;text-decoration:underline}
+.auth-error{background:#1a0000;border:1px solid var(--red);color:#ff6b6b;border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none;line-height:1.4}
+</style>
+</head>
+<body>
+
+<header class="hdr" style="position:fixed">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-right" style="margin-left:auto">
+    <!-- no backend dot needed on login page -->
+    <span id="backend-dot" style="display:none"></span>
+    <span id="backend-label" style="display:none"></span>
+    <span id="sign-in-btn" style="display:none"></span>
+    <span id="user-avatar" style="display:none"></span>
+  </div>
+</header>
+
+<div class="auth-card">
+  <div class="auth-logo">AS<span>TUBE</span></div>
+  <div class="auth-tag">Watch without limits</div>
+
+  <div class="auth-error" id="auth-error"></div>
+
+  <button class="g-btn" id="google-btn" onclick="signInGoogle()">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"/>
+    Sign in with Google
+  </button>
+
+  <div class="divider">or</div>
+
+  <!-- Sign In -->
+  <div id="signin-form">
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="si-email" placeholder="you@example.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="si-password" placeholder="Password" autocomplete="current-password" style="padding-right:40px"/>
+        <button class="pw-toggle" onclick="togglePw('si-password')" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn btn-red" id="si-btn" onclick="signInEmail()" style="width:100%;padding:12px">Sign In</button>
+    <div class="switch-link">New to ASTUBE? <a onclick="toggle(true)">Create account</a></div>
+  </div>
+
+  <!-- Sign Up -->
+  <div id="signup-form" style="display:none">
+    <div class="form-group">
+      <label class="form-label">Display Name</label>
+      <input type="text" id="su-name" placeholder="Your name" autocomplete="name"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="su-email" placeholder="you@example.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="su-password" placeholder="At least 6 characters" style="padding-right:40px"/>
+        <button class="pw-toggle" onclick="togglePw('su-password')" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm Password</label>
+      <input type="password" id="su-confirm" placeholder="Repeat password" autocomplete="new-password"/>
+    </div>
+    <button class="btn btn-red" id="su-btn" onclick="signUp()" style="width:100%;padding:12px">Create Account</button>
+    <div class="switch-link">Already have an account? <a onclick="toggle(false)">Sign in</a></div>
+  </div>
+</div>
+
+<script>
+// If already logged in, redirect
+const unsub = auth.onAuthStateChanged(user => {
+  if (user) { unsub(); redirect(); }
+});
+
+function redirect() {
+  const p = new URLSearchParams(location.search);
+  location.href = p.get('redirect') || 'index.html';
+}
+
+function toggle(showSignup) {
+  document.getElementById('signin-form').style.display = showSignup ? 'none' : 'block';
+  document.getElementById('signup-form').style.display = showSignup ? 'block' : 'none';
+  clearErr();
+}
+
+function setErr(msg) { const e=document.getElementById('auth-error'); e.textContent=msg; e.style.display='block'; }
+function clearErr()  { document.getElementById('auth-error').style.display='none'; }
+
+const errMap = {
+  'auth/wrong-password':       'Incorrect password.',
+  'auth/user-not-found':       'No account found with this email.',
+  'auth/email-already-in-use': 'This email is already registered.',
+  'auth/weak-password':        'Password must be at least 6 characters.',
+  'auth/invalid-email':        'Invalid email address.',
+  'auth/too-many-requests':    'Too many attempts. Please try again later.',
+  'auth/invalid-credential':   'Incorrect email or password.',
+  'auth/network-request-failed': 'Network error. Check your connection.',
+};
+
+function friendlyErr(code) { return errMap[code] || 'Something went wrong. Try again.'; }
+
+async function signInGoogle() {
+  clearErr();
+  const btn = document.getElementById('google-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const result = await auth.signInWithPopup(googleProvider);
+    await createUserRecord(result.user);
+    // Check if username needed — flag for destination page to handle
+    const snap = await db.ref(`users/${result.user.uid}/username`).once('value');
+    if (!snap.exists()) sessionStorage.setItem('astube_needs_username', '1');
+    redirect();
+  } catch(e) {
+    if (e.code !== 'auth/popup-closed-by-user') setErr(friendlyErr(e.code));
+    btn.disabled = false;
+    btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;height:20px"/> Sign in with Google';
+  }
+}
+
+async function signInEmail() {
+  clearErr();
+  const email = document.getElementById('si-email').value.trim();
+  const pass  = document.getElementById('si-password').value;
+  if (!email || !pass) { setErr('Please fill in all fields.'); return; }
+  const btn = document.getElementById('si-btn');
+  btn.disabled=true; btn.textContent='Signing in…';
+  try {
+    const result = await auth.signInWithEmailAndPassword(email, pass);
+    await createUserRecord(result.user);
+    const snap = await db.ref(`users/${result.user.uid}/username`).once('value');
+    if (!snap.exists()) sessionStorage.setItem('astube_needs_username', '1');
+    redirect();
+  } catch(e) {
+    setErr(friendlyErr(e.code));
+    btn.disabled=false; btn.textContent='Sign In';
+  }
+}
+
+async function signUp() {
+  clearErr();
+  const name    = document.getElementById('su-name').value.trim();
+  const email   = document.getElementById('su-email').value.trim();
+  const pass    = document.getElementById('su-password').value;
+  const confirm = document.getElementById('su-confirm').value;
+  if (!name||!email||!pass) { setErr('Please fill in all fields.'); return; }
+  if (pass !== confirm)     { setErr('Passwords do not match.'); return; }
+  if (pass.length < 6)      { setErr('Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('su-btn');
+  btn.disabled=true; btn.textContent='Creating account…';
+  try {
+    const result = await auth.createUserWithEmailAndPassword(email, pass);
+    await result.user.updateProfile({ displayName: name });
+    await createUserRecord({ ...result.user, displayName: name });
+    sessionStorage.setItem('astube_needs_username', '1');
+    redirect();
+  } catch(e) {
+    setErr(friendlyErr(e.code));
+    btn.disabled=false; btn.textContent='Create Account';
+  }
+}
+
+function togglePw(id) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('signup-form').style.display==='block') signUp();
+  else signInEmail();
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

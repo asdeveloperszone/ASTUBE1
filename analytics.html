@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Analytics — ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="View your ASTUBE channel analytics — views, likes, subscribers, and top performing videos."/>
+  <meta name="keywords" content="ASTUBE analytics, channel stats, video views, creator analytics"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/analytics.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="Channel Analytics — ASTUBE"/>
+  <meta property="og:description" content="Track your ASTUBE channel performance."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/analytics.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="Channel Analytics — ASTUBE"/>
+  <meta name="twitter:description" content="Track your ASTUBE channel performance."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="robots" content="noindex,nofollow"/>
+<meta name="theme-color" content="#00c864"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.an-wrap { max-width: 900px; margin: 0 auto; padding: 16px 16px 80px; }
+
+.an-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px; margin-bottom: 20px;
+  background: linear-gradient(135deg, #0a1f12 0%, #050e07 100%);
+  border: 1px solid var(--border); border-radius: var(--r);
+  position: relative; overflow: hidden;
+}
+.an-header::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 80% 50%, rgba(0,200,100,.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.an-header-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: rgba(0,200,100,.15); border: 1px solid rgba(0,200,100,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--green); flex-shrink: 0;
+}
+.an-header-title { font-size: 22px; font-weight: 800; margin-bottom: 2px; }
+.an-header-sub   { font-size: 13px; color: var(--text2); }
+
+/* 5-card grid */
+.an-stat-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+@media (min-width: 640px)  { .an-stat-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 900px)  { .an-stat-grid { grid-template-columns: repeat(5, 1fr); } }
+
+.an-stat-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px 14px;
+  position: relative; overflow: hidden;
+  transition: border-color .2s, transform .2s;
+}
+.an-stat-card:hover { border-color: var(--accent-color, var(--green)); transform: translateY(-2px); }
+.an-stat-card::before {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: var(--accent-color, var(--green));
+  border-radius: 0 0 var(--r) var(--r);
+}
+.an-stat-card.c-views  { --accent-color: var(--green); }
+.an-stat-card.c-videos { --accent-color: #6c63ff; }
+.an-stat-card.c-likes  { --accent-color: var(--green); }
+.an-stat-card.c-subs   { --accent-color: var(--red); }
+.an-stat-card.c-avg    { --accent-color: #f59e0b; }
+.an-stat-icon  { font-size: 13px; margin-bottom: 8px; color: var(--accent-color, var(--green)); }
+.an-stat-val   { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 3px; line-height: 1; }
+.an-stat-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+
+/* Highlights row */
+.an-highlights {
+  display: none; gap: 12px; margin-bottom: 20px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px) { .an-highlights { grid-template-columns: 1fr 1fr; } }
+
+.an-top-card {
+  border-radius: var(--r); padding: 14px;
+  display: flex; gap: 12px; align-items: center;
+  cursor: pointer; transition: opacity .15s;
+}
+.an-top-card:hover { opacity: .85; }
+.an-top-card.v-card { background: linear-gradient(135deg,#0d2116,#050e07); border: 1px solid rgba(0,200,100,.3); }
+.an-top-card.l-card { background: linear-gradient(135deg,#0a1e14,#040d08); border: 1px solid rgba(0,200,100,.2); }
+.an-top-thumb { width: 96px; height: 54px; border-radius: 7px; overflow: hidden; flex-shrink: 0; }
+.an-top-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.an-top-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; color: var(--green); }
+.an-top-title { font-size: 13px; font-weight: 700; line-height: 1.35; margin-bottom: 6px; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.an-top-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.an-top-stat  { font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.an-top-stat.sg { color: var(--green); }
+.an-top-stat.sm { color: var(--text2); font-weight: 500; }
+
+/* Sort bar */
+.an-sort-bar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.an-sort-bar-label { font-size: 12px; color: var(--text2); margin-right: 4px; }
+.sort-chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surf);
+  color: var(--text2); cursor: pointer; transition: all .2s;
+}
+.sort-chip.active { background: var(--green); color: #000; border-color: var(--green); }
+.sort-chip:hover:not(.active) { border-color: var(--text2); color: var(--text); }
+
+/* Video list */
+.an-video-list { display: flex; flex-direction: column; gap: 10px; }
+.an-video-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px 14px;
+  display: flex; gap: 12px; align-items: center;
+  transition: border-color .15s, background .15s; cursor: pointer;
+}
+.an-video-card:hover { border-color: var(--green); background: rgba(0,200,100,.03); }
+.an-video-rank { font-size: 15px; font-weight: 800; color: var(--text2); width: 22px; text-align: center; flex-shrink: 0; }
+.an-video-rank.top { color: var(--green); }
+.an-thumb-wrap { position: relative; width: 96px; height: 54px; border-radius: 7px; overflow: hidden; flex-shrink: 0; background: var(--surf2); }
+.an-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.an-thumb-dur { position: absolute; bottom: 3px; right: 3px; background: rgba(0,0,0,.82); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 4px; border-radius: 3px; }
+.an-video-info { flex: 1; min-width: 0; }
+.an-video-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; line-height: 1.35; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.an-video-meta { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.an-meta-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); font-weight: 500; }
+.an-meta-chip.lc { color: var(--green); font-weight: 700; }
+.an-meta-chip i { font-size: 10px; }
+.an-badge-cat { padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 700; background: var(--surf2); color: var(--text2); text-transform: capitalize; }
+.an-stats-col { width: 82px; flex-shrink: 0; text-align: right; }
+.an-stat-num  { font-size: 15px; font-weight: 700; color: var(--text); }
+.an-bar-label { font-size: 10px; color: var(--text2); margin-bottom: 2px; margin-top: 4px; }
+.an-bar-wrap  { height: 4px; background: var(--surf2); border-radius: 2px; }
+.an-bar       { height: 4px; border-radius: 2px; min-width: 3px; transition: width .6s ease; }
+.an-bar.vb    { background: var(--green); }
+.an-bar.lb    { background: rgba(0,200,100,.5); }
+
+.an-empty { text-align: center; padding: 60px 20px; color: var(--text2); background: var(--surf); border: 1px solid var(--border); border-radius: var(--r); }
+.an-empty i { font-size: 48px; opacity: .25; margin-bottom: 14px; display: block; }
+.an-empty p { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.an-empty small { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-right" style="margin-left:auto">
+    <div class="backend-status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text"></span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'">Sign In</button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<main class="main" style="padding-top:56px">
+<div class="an-wrap">
+
+  <div class="an-header">
+    <div class="an-header-icon"><i class="fas fa-chart-line"></i></div>
+    <div>
+      <div class="an-header-title">Channel Analytics</div>
+      <div class="an-header-sub" id="an-sub">Loading your stats…</div>
+    </div>
+  </div>
+
+  <!-- 5 stat cards including Likes -->
+  <div class="an-stat-grid">
+    <div class="an-stat-card c-views">
+      <div class="an-stat-icon"><i class="fas fa-eye"></i> Total Views</div>
+      <div class="an-stat-val" id="stat-views">—</div>
+      <div class="an-stat-label">All time</div>
+    </div>
+    <div class="an-stat-card c-videos">
+      <div class="an-stat-icon"><i class="fas fa-film"></i> Videos</div>
+      <div class="an-stat-val" id="stat-videos">—</div>
+      <div class="an-stat-label">Uploaded</div>
+    </div>
+    <div class="an-stat-card c-likes">
+      <div class="an-stat-icon"><i class="fas fa-thumbs-up"></i> Total Likes</div>
+      <div class="an-stat-val" id="stat-likes">—</div>
+      <div class="an-stat-label">All videos</div>
+    </div>
+    <div class="an-stat-card c-subs">
+      <div class="an-stat-icon"><i class="fas fa-users"></i> Subscribers</div>
+      <div class="an-stat-val" id="stat-subs">—</div>
+      <div class="an-stat-label">Your channel</div>
+    </div>
+    <div class="an-stat-card c-avg">
+      <div class="an-stat-icon"><i class="fas fa-chart-bar"></i> Avg Views</div>
+      <div class="an-stat-val" id="stat-avg">—</div>
+      <div class="an-stat-label">Per video</div>
+    </div>
+  </div>
+
+  <!-- Highlight cards: top viewed + most liked -->
+  <div class="an-highlights" id="an-highlights"></div>
+
+  <!-- Sort chips -->
+  <div class="an-sort-bar">
+    <span class="an-sort-bar-label"><i class="fas fa-sort-amount-down"></i> Sort:</span>
+    <button class="sort-chip active" onclick="sortBy('views',this)">Most Views</button>
+    <button class="sort-chip" onclick="sortBy('likes',this)"><i class="fas fa-thumbs-up"></i> Most Liked</button>
+    <button class="sort-chip" onclick="sortBy('recent',this)">Most Recent</button>
+    <button class="sort-chip" onclick="sortBy('oldest',this)">Oldest</button>
+    <button class="sort-chip" onclick="sortBy('title',this)">A–Z</button>
+  </div>
+
+  <div class="an-video-list" id="an-video-list">
+    <div class="an-empty"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
+  </div>
+
+</div>
+</main>
+
+<nav class="bnav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<script>
+let myVideos    = [];
+let _likeCounts = {};
+let maxViews    = 1;
+let maxLikes    = 1;
+let _sortMode   = 'views';
+
+async function init() {
+  const user = await requireAuth();
+
+  const subs = await getSubCount(user.uid);
+  document.getElementById('stat-subs').textContent = formatSubs(subs);
+  if (subs >= 1000) document.getElementById('stat-subs').title = subs.toLocaleString() + ' subscribers';
+
+  const snapAll = await db.ref('videos').once('value');
+  if (!snapAll.exists()) { showEmpty(); return; }
+
+  myVideos = [];
+  snapAll.forEach(c => {
+    const v = c.val();
+    if (v.addedByUid === user.uid || v.addedBy === user.uid) {
+      myVideos.push({ id: c.key, ...v });
+    }
+  });
+
+  if (!myVideos.length) { showEmpty(); return; }
+
+  // Fetch all like counts in parallel
+  _likeCounts = await getBatchLikeCounts(myVideos.map(v => v.id));
+  myVideos.forEach(v => { v._likes = _likeCounts[v.id] || 0; });
+
+  maxViews = Math.max(1, ...myVideos.map(v => v.views || 0));
+  maxLikes = Math.max(1, ...myVideos.map(v => v._likes));
+
+  const totalViews = myVideos.reduce((s, v) => s + (v.views || 0), 0);
+  const totalLikes = myVideos.reduce((s, v) => s + v._likes, 0);
+  const avgViews   = Math.round(totalViews / myVideos.length);
+
+  document.getElementById('stat-views').textContent  = formatCount(totalViews);
+  document.getElementById('stat-videos').textContent = myVideos.length;
+  document.getElementById('stat-likes').textContent  = formatCount(totalLikes);
+  document.getElementById('stat-avg').textContent    = formatCount(avgViews);
+  document.getElementById('an-sub').textContent =
+    myVideos.length + ' video' + (myVideos.length !== 1 ? 's' : '') +
+    ' · ' + formatCount(totalViews) + ' views · ' + formatCount(totalLikes) + ' likes';
+
+  renderHighlights();
+  renderList();
+}
+
+function renderHighlights() {
+  const topViewed = [...myVideos].sort((a,b) => (b.views||0)-(a.views||0))[0];
+  const topLiked  = [...myVideos].sort((a,b) => b._likes - a._likes)[0];
+  const wrap      = document.getElementById('an-highlights');
+  let html = '';
+
+  if (topViewed && (topViewed.views||0) > 0) {
+    const t = topViewed.thumbnail || 'https://i.ytimg.com/vi/'+topViewed.id+'/hqdefault.jpg';
+    html += `<div class="an-top-card v-card" onclick="location.href='player.html?v=${topViewed.id}'">
+      <div class="an-top-thumb"><img src="${t}" onerror="this.src='https://i.ytimg.com/vi/${topViewed.id}/hqdefault.jpg'"/></div>
+      <div style="flex:1;min-width:0">
+        <div class="an-top-label"><i class="fas fa-trophy"></i> Top Performing Video</div>
+        <div class="an-top-title">${topViewed.title||'Untitled'}</div>
+        <div class="an-top-stats">
+          <span class="an-top-stat sg"><i class="fas fa-eye"></i> ${formatCount(topViewed.views||0)}</span>
+          <span class="an-top-stat sg"><i class="fas fa-thumbs-up"></i> ${formatCount(topViewed._likes)}</span>
+          <span class="an-top-stat sm"><i class="fas fa-clock"></i> ${timeAgo(topViewed.addedAt)}</span>
+        </div>
+      </div></div>`;
+  }
+
+  if (topLiked && topLiked._likes > 0 && (!topViewed || topLiked.id !== topViewed.id)) {
+    const t2 = topLiked.thumbnail || 'https://i.ytimg.com/vi/'+topLiked.id+'/hqdefault.jpg';
+    html += `<div class="an-top-card l-card" onclick="location.href='player.html?v=${topLiked.id}'">
+      <div class="an-top-thumb"><img src="${t2}" onerror="this.src='https://i.ytimg.com/vi/${topLiked.id}/hqdefault.jpg'"/></div>
+      <div style="flex:1;min-width:0">
+        <div class="an-top-label"><i class="fas fa-thumbs-up"></i> Most Liked Video</div>
+        <div class="an-top-title">${topLiked.title||'Untitled'}</div>
+        <div class="an-top-stats">
+          <span class="an-top-stat sg"><i class="fas fa-thumbs-up"></i> ${formatCount(topLiked._likes)}</span>
+          <span class="an-top-stat sm"><i class="fas fa-eye"></i> ${formatCount(topLiked.views||0)}</span>
+          <span class="an-top-stat sm"><i class="fas fa-clock"></i> ${timeAgo(topLiked.addedAt)}</span>
+        </div>
+      </div></div>`;
+  }
+
+  if (html) { wrap.innerHTML = html; wrap.style.display = 'grid'; }
+}
+
+function showEmpty() {
+  document.getElementById('stat-views').textContent  = '0';
+  document.getElementById('stat-videos').textContent = '0';
+  document.getElementById('stat-likes').textContent  = '0';
+  document.getElementById('stat-avg').textContent    = '0';
+  document.getElementById('an-sub').textContent      = 'No videos uploaded yet.';
+  document.getElementById('an-video-list').innerHTML = `
+    <div class="an-empty">
+      <i class="fas fa-photo-film"></i>
+      <p>No videos yet</p>
+      <small>Upload your first video to see analytics here</small><br/>
+      <a href="add-video.html" class="btn btn-red" style="margin-top:14px;display:inline-flex;gap:6px">
+        <i class="fas fa-plus"></i> Add Video
+      </a>
+    </div>`;
+}
+
+function sortBy(mode, btn) {
+  _sortMode = mode;
+  document.querySelectorAll('.sort-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function getSorted() {
+  const arr = [...myVideos];
+  if (_sortMode === 'views')  return arr.sort((a,b) => (b.views||0)-(a.views||0));
+  if (_sortMode === 'likes')  return arr.sort((a,b) => b._likes-a._likes);
+  if (_sortMode === 'recent') return arr.sort((a,b) => (b.addedAt||0)-(a.addedAt||0));
+  if (_sortMode === 'oldest') return arr.sort((a,b) => (a.addedAt||0)-(b.addedAt||0));
+  if (_sortMode === 'title')  return arr.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+  return arr;
+}
+
+function renderList() {
+  const sorted  = getSorted();
+  const byLikes = _sortMode === 'likes';
+  const list    = document.getElementById('an-video-list');
+
+  list.innerHTML = sorted.map((v, i) => {
+    const thumb    = v.thumbnail || 'https://i.ytimg.com/vi/'+v.id+'/hqdefault.jpg';
+    const views    = v.views || 0;
+    const likes    = v._likes || 0;
+    const vPct     = Math.round((views / maxViews) * 100);
+    const lPct     = maxLikes > 0 ? Math.round((likes / maxLikes) * 100) : 0;
+    const dur      = v.durationFormatted || formatDuration(v.duration);
+    const rank     = i + 1;
+    const isTop    = rank <= 3;
+
+    return `
+    <div class="an-video-card" onclick="location.href='player.html?v=${v.id}'">
+      <div class="an-video-rank ${isTop?'top':''}">${rank}</div>
+      <div class="an-thumb-wrap">
+        <img src="${thumb}" alt="" onerror="this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" loading="lazy"/>
+        ${dur ? '<span class="an-thumb-dur">'+dur+'</span>' : ''}
+      </div>
+      <div class="an-video-info">
+        <div class="an-video-title">${v.title||'Untitled'}</div>
+        <div class="an-video-meta">
+          <span class="an-meta-chip"><i class="fas fa-eye"></i> ${formatCount(views)}</span>
+          <span class="an-meta-chip lc"><i class="fas fa-thumbs-up"></i> ${formatCount(likes)}</span>
+          <span class="an-meta-chip"><i class="fas fa-clock"></i> ${timeAgo(v.addedAt)}</span>
+          <span class="an-badge-cat">${v.category||'general'}</span>
+        </div>
+      </div>
+      <div class="an-stats-col">
+        <div class="an-stat-num">${byLikes ? formatCount(likes) : formatCount(views)}</div>
+        <div class="an-bar-label">${byLikes ? 'likes' : 'views'}</div>
+        <div class="an-bar-wrap"><div class="an-bar ${byLikes?'lb':'vb'}" style="width:${byLikes?lPct:vPct}%"></div></div>
+        ${!byLikes && likes>0 ? `<div class="an-bar-label">likes</div><div class="an-bar-wrap"><div class="an-bar lb" style="width:${lPct}%"></div></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>

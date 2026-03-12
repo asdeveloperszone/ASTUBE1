@@ -1,0 +1,66 @@
+{
+  "name": "ASTUBE",
+  "short_name": "ASTUBE",
+  "description": "ASTUBE — Watch & share videos",
+  "start_url": "/ASTUBE1/index.html",
+  "scope": "/ASTUBE1/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00c851",
+  "icons": [
+    {
+      "src": "/ASTUBE1/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ASTUBE1/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ASTUBE1/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Home",
+      "short_name": "Home",
+      "url": "/ASTUBE1/index.html",
+      "icons": [{ "src": "/ASTUBE1/shortcut-home.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Search",
+      "short_name": "Search",
+      "url": "/ASTUBE1/search.html",
+      "icons": [{ "src": "/ASTUBE1/shortcut-search.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Add Video",
+      "short_name": "Add",
+      "url": "/ASTUBE1/add-video.html",
+      "icons": [{ "src": "/ASTUBE1/shortcut-add.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Stats",
+      "url": "/ASTUBE1/analytics.html",
+      "icons": [{ "src": "/ASTUBE1/analytics.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "url": "/ASTUBE1/profile.html",
+      "icons": [{ "src": "/ASTUBE1/shortcut-profile.png", "sizes": "192x192" }]
+    }
+  ]
+}
+ }
+  ]
+}

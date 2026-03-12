@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Add Video - ASTUBE</title>
+  <!-- SEO -->
+  <meta name="description" content="Add a YouTube video to ASTUBE. Fetch video info automatically and share it with the ASTUBE community."/>
+  <meta name="keywords" content="add video, upload video, ASTUBE add, share video, YouTube to ASTUBE"/>
+  <meta name="author" content="ASDeveloper"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <link rel="canonical" href="https://asdeveloperszone.github.io/ASTUBE1/add-video.html"/>
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="ASTUBE"/>
+  <meta property="og:title" content="Add Video — ASTUBE"/>
+  <meta property="og:description" content="Share YouTube videos on ASTUBE."/>
+  <meta property="og:url" content="https://asdeveloperszone.github.io/ASTUBE1/add-video.html"/>
+  <meta property="og:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <meta property="og:image:width" content="512"/>
+  <meta property="og:image:height" content="512"/>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary"/>
+  <meta name="twitter:site" content="@ASDeveloper"/>
+  <meta name="twitter:title" content="Add Video — ASTUBE"/>
+  <meta name="twitter:description" content="Share YouTube videos on ASTUBE."/>
+  <meta name="twitter:image" content="https://asdeveloperszone.github.io/ASTUBE1/icon.png"/>
+  <!-- /SEO -->
+<link rel="icon" type="image/png" href="icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ASTUBE"/>
+<meta name="theme-color" content="#00c851"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.add-wrap{max-width:640px;margin:0 auto;padding:16px}
+.step{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.step-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.url-row{display:flex;gap:8px}
+.url-row input{flex:1}
+.preview-thumb{width:100%;aspect-ratio:16/9;border-radius:var(--r);overflow:hidden;background:var(--surf2);margin-bottom:16px}
+.preview-thumb img{width:100%;height:100%;object-fit:cover}
+.meta-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.meta-chip{background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.meta-chip b{color:var(--text)}
+
+/* Live fetch log */
+.fetch-log-wrap{margin-top:12px}
+.fetch-log-title{font-size:12px;color:var(--text3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="index.html" class="logo">AS<span>TUBE</span></a>
+  <div class="hdr-search">
+    <input id="search-input" type="text" placeholder="Search ASTUBE" autocomplete="off"/>
+    <button class="sbtn" onclick="doSearch()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+  </div>
+  <div class="hdr-right">
+    <div class="backend-status" title="Backend status">
+      <span class="backend-dot bk-checking" id="backend-dot"></span>
+      <span id="backend-label" class="backend-label-text">Checking…</span>
+    </div>
+    <button id="sign-in-btn" onclick="location.href='login.html'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Sign In
+    </button>
+    <div id="user-avatar" onclick="location.href='profile.html'"></div>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <a href="index.html" class="s-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="s-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add Video</a>
+  <a href="profile.html" class="s-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<main class="main">
+  <div class="add-wrap">
+    <h1 class="page-title" style="padding:0 0 16px">Add Video</h1>
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-title"><span class="step-num">1</span> Paste YouTube URL</div>
+      <div class="url-row">
+        <input type="text" id="url-input" placeholder="https://youtube.com/watch?v=... or video ID" autocomplete="off"/>
+        <button class="btn btn-red" id="fetch-btn" onclick="fetchInfo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg>
+          Fetch Info
+        </button>
+      </div>
+      <div id="url-error" style="color:var(--red);font-size:13px;margin-top:8px;display:none"></div>
+
+      <!-- Live fetch log -->
+      <div class="fetch-log-wrap" id="log-wrap" style="display:none">
+        <div class="fetch-log-title">yt-dlp log</div>
+        <div class="fetch-log" id="fetch-log"></div>
+      </div>
+    </div>
+
+    <!-- Step 2 (hidden until fetch) -->
+    <div class="step" id="details-step" style="display:none">
+      <div class="step-title"><span class="step-num">2</span> Video Details</div>
+
+      <div class="preview-thumb">
+        <img id="thumb-preview" src="" alt="Thumbnail"/>
+      </div>
+
+      <!-- Auto-filled chips -->
+      <div class="meta-chips" id="meta-chips"></div>
+
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" id="title-input" placeholder="Video title"/>
+        <div class="form-error" id="title-error">Title is required</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea id="desc-input" rows="4" placeholder="Video description"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <select id="cat-input">
+          <option value="">Select a category</option>
+          <option value="trending">Trending</option>
+          <option value="music">Music</option>
+          <option value="gaming">Gaming</option>
+          <option value="news">News</option>
+          <option value="sports">Sports</option>
+          <option value="education">Education</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="technology">Technology</option>
+          <option value="islam">Islam</option>
+          <option value="pir_naseer">Pir Naseer</option>
+          <option value="other">Other</option>
+        </select>
+        <div class="form-error" id="cat-error">Please select a category</div>
+      </div>
+
+      <div id="dup-warning" style="display:none;padding:10px 14px;background:#1a1000;border:1px solid #ff8c00;border-radius:var(--r);font-size:13px;margin-bottom:12px">
+        <i class="fas fa-exclamation-triangle"></i> This video is already in ASTUBE. <a id="dup-link" href="#" style="color:#3ea6ff">Watch it here →</a>
+      </div>
+
+      <button class="btn btn-red" id="submit-btn" onclick="submitVideo()" style="width:100%;padding:14px">
+        Add to ASTUBE
+      </button>
+    </div>
+  </div>
+</main>
+
+<nav class="bnav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a>
+  <a href="search.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</a>
+  <a href="add-video.html" class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</a>
+  <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
+</nav>
+
+<script>
+let fetchedInfo = null;
+let currentVideoId = null;
+
+let userData = null;
+requireAuth().then(async u => {
+  userData = await getUserData(u.uid);
+});
+
+document.getElementById('url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fetchInfo();
+});
+
+async function fetchInfo() {
+  const input = document.getElementById('url-input').value.trim();
+  const errEl = document.getElementById('url-error');
+  errEl.style.display = 'none';
+  document.getElementById('details-step').style.display = 'none';
+  clearLog('fetch-log');
+  document.getElementById('log-wrap').style.display = 'none';
+
+  const ytId = extractVideoId(input);
+  if (!ytId) {
+    errEl.textContent = 'Could not extract a YouTube video ID. Check the URL.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (!window.BACKEND_URL) {
+    // Backend might still be initialising — wait for config.js IIFE
+    if (window._backendReadyPromise) await window._backendReadyPromise;
+  }
+
+  if (!window.BACKEND_URL) {
+    errEl.textContent = 'Backend is offline. Start Termux (bash start.sh) first.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .8s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg> Fetching…';
+
+  // Show log panel
+  document.getElementById('log-wrap').style.display = 'block';
+  document.getElementById('fetch-log').style.display = 'block';
+
+  addLog('fetch-log', `Video ID: ${ytId}`, 'info');
+  addLog('fetch-log', `Calling backend: ${window.BACKEND_URL}/get-info`, 'info');
+  addLog('fetch-log', 'Running yt-dlp --dump-json… (may take 5–15 seconds)', 'loading');
+
+  try {
+    const info = await getVideoInfo(ytId);
+    fetchedInfo = info;
+    currentVideoId = ytId;
+
+    addLog('fetch-log', `Title fetched: "${info.title}"`, 'success');
+    addLog('fetch-log', `Duration: ${info.durationFormatted || '?'} | Channel: ${info.channel || '?'}`, 'success');
+    addLog('fetch-log', `Thumbnail: ${info.thumbnail ? 'Found' : 'Fallback used'}`, 'success');
+
+    // Check duplicate
+    const existing = await db.ref(`videos/${ytId}`).once('value');
+    if (existing.exists()) {
+      addLog('fetch-log', 'Video already exists in ASTUBE database', 'warn');
+      document.getElementById('dup-warning').style.display = 'block';
+      document.getElementById('dup-link').href = `player.html?v=${ytId}`;
+    } else {
+      document.getElementById('dup-warning').style.display = 'none';
+      addLog('fetch-log', 'Video not in database yet — ready to add', 'info');
+    }
+
+    // Populate form
+    document.getElementById('thumb-preview').src =
+      info.thumbnail || `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+    document.getElementById('title-input').value = info.title || '';
+    document.getElementById('desc-input').value  = info.description || '';
+
+    // Meta chips
+    document.getElementById('meta-chips').innerHTML = `
+      <span class="meta-chip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <b>${info.durationFormatted || '?'}</b>
+      </span>
+      <span class="meta-chip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <b>${info.channel || 'Unknown'}</b>
+      </span>
+      ${info.viewCount ? `<span class="meta-chip"> <b>${formatCount(info.viewCount)} views on YouTube</b></span>` : ''}
+      ${info.uploadDate ? `<span class="meta-chip"> <b>${info.uploadDate}</b></span>` : ''}
+    `;
+
+    addLog('fetch-log', 'Form populated — review and submit below', 'success');
+
+    document.getElementById('details-step').style.display = 'block';
+    document.getElementById('details-step').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (e) {
+    addLog('fetch-log', `Error: ${e.message}`, 'error');
+    errEl.textContent = e.message || 'Failed to fetch video info.';
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg> Fetch Info';
+}
+
+async function submitVideo() {
+  if (!fetchedInfo || !currentVideoId) return;
+  const user = auth.currentUser;
+  if (!user) { location.href = 'login.html'; return; }
+
+  const title = document.getElementById('title-input').value.trim();
+  const cat   = document.getElementById('cat-input').value;
+  const desc  = document.getElementById('desc-input').value.trim();
+  let valid = true;
+
+  document.getElementById('title-error').style.display = !title ? 'block' : 'none';
+  if (!title) valid = false;
+  document.getElementById('cat-error').style.display = !cat ? 'block' : 'none';
+  if (!cat) valid = false;
+  if (!valid) return;
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving to Firebase…';
+
+  addLog('fetch-log', 'Saving video to Firebase Realtime Database…', 'loading');
+
+  try {
+    await db.ref(`videos/${currentVideoId}`).set({
+      ytId:              currentVideoId,
+      ytUrl:             `https://www.youtube.com/watch?v=${currentVideoId}`,
+      title,
+      description:       desc,
+      thumbnail:         fetchedInfo.thumbnail || `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`,
+      duration:          fetchedInfo.duration || 0,
+      durationFormatted: fetchedInfo.durationFormatted || '',
+      channel:           fetchedInfo.channel || 'Unknown',
+      uploadDate:        fetchedInfo.uploadDate || '',
+      category:          cat,
+      addedBy:           user.uid,
+      addedByUid:        user.uid,
+      addedByName:       (userData && userData.name) || user.displayName || 'ASTUBEr',
+      addedByPhotoUrl:   (userData && userData.photoUrl) ? userData.photoUrl : (user.photoURL || ''),
+      addedAt:           Date.now(),
+      views:             0
+    });
+
+    addLog('fetch-log', `Saved! Redirecting to player…`, 'success');
+    showToast('Video added successfully!', 'success');
+    setTimeout(() => location.href = `player.html?v=${currentVideoId}`, 1500);
+
+  } catch (e) {
+    addLog('fetch-log', `Save failed: ${e.message}`, 'error');
+    showToast('Failed to save: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Add to ASTUBE';
+  }
+}
+
+function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (q) location.href = `search.html?q=${encodeURIComponent(q)}`;
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
+}
+window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+</script>
+</body>
+</html>
