@@ -2,7 +2,7 @@
 // Path: asdeveloperszone.github.io/ASTUBE1
 
 const BASE_PATH  = '/ASTUBE1';
-const CACHE_NAME = 'astube-v16.5';
+const CACHE_NAME = 'astube-v17.0';
 
 // Files to pre-cache on install
 const PRECACHE = [
