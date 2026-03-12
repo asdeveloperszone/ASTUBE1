@@ -96,11 +96,18 @@
     </button>
   </div>
   <div class="hdr-right">
-    <!-- Backend status indicator -->
     <div class="backend-status" title="Termux backend status">
       <span class="backend-dot bk-checking" id="backend-dot"></span>
       <span id="backend-label" class="backend-label-text">Checking…</span>
     </div>
+    <button id="install-btn" style="display:none" onclick="triggerInstall()" title="Install ASTUBE app">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Install
+    </button>
     <button id="sign-in-btn" onclick="location.href='login.html'">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Sign In
@@ -384,6 +391,32 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/ASTUBE1/sw.js').catch(()=>{}));
 }
 window.addEventListener('offline', () => { if(!location.pathname.includes('offline')) location.href = 'offline.html'; });
+
+// ── PWA Install Prompt ──────────────────────────────────────────
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  // Show install button in header
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'inline-flex';
+});
+function triggerInstall() {
+  if (!_installPrompt) return;
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      document.getElementById('install-btn').style.display = 'none';
+    }
+    _installPrompt = null;
+  });
+}
+// Hide install btn if already installed
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'none';
+  _installPrompt = null;
+});
 </script>
 </body>
 </html>
