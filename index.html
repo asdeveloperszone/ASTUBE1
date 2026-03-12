@@ -101,7 +101,7 @@
       <span id="backend-label" class="backend-label-text">Checking…</span>
     </div>
     <button id="install-btn" style="display:none" onclick="triggerInstall()" title="Install ASTUBE app">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
         <polyline points="7 10 12 15 17 10"/>
         <line x1="12" y1="15" x2="12" y2="3"/>
@@ -191,8 +191,20 @@
   <a href="profile.html" class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</a>
 </nav>
 
+<!-- PWA Install Banner -->
+<div id="install-banner" style="display:none">
+  <div class="install-banner-icon">
+    <img src="icon.png" alt="ASTUBE" width="44" height="44" style="border-radius:10px"/>
+  </div>
+  <div class="install-banner-text">
+    <div class="install-banner-title">Install ASTUBE</div>
+    <div class="install-banner-sub">Add to home screen for best experience</div>
+  </div>
+  <button class="install-banner-btn" onclick="triggerInstall()">Install</button>
+  <button class="install-banner-close" onclick="dismissInstallBanner()">✕</button>
+</div>
+
 <script>
-let all=[], cat='all', shown=12;
 
 const _VIDEO_CACHE_KEY = 'astube_home_videos';
 const _VIDEO_CACHE_TTL = 5 * 60 * 1000; // 5 min
@@ -397,24 +409,34 @@ let _installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   _installPrompt = e;
-  // Show install button in header
+  // Show header button
   const btn = document.getElementById('install-btn');
   if (btn) btn.style.display = 'inline-flex';
+  // Show banner after 3s if not dismissed before
+  if (!sessionStorage.getItem('astube_install_dismissed')) {
+    setTimeout(() => {
+      const banner = document.getElementById('install-banner');
+      if (banner && _installPrompt) banner.style.display = 'flex';
+    }, 3000);
+  }
 });
 function triggerInstall() {
   if (!_installPrompt) return;
   _installPrompt.prompt();
   _installPrompt.userChoice.then(result => {
-    if (result.outcome === 'accepted') {
-      document.getElementById('install-btn').style.display = 'none';
-    }
+    document.getElementById('install-btn').style.display = 'none';
+    document.getElementById('install-banner').style.display = 'none';
     _installPrompt = null;
   });
 }
-// Hide install btn if already installed
+function dismissInstallBanner() {
+  document.getElementById('install-banner').style.display = 'none';
+  sessionStorage.setItem('astube_install_dismissed', '1');
+}
+// Hide if already installed
 window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('install-btn');
-  if (btn) btn.style.display = 'none';
+  document.getElementById('install-btn').style.display = 'none';
+  document.getElementById('install-banner').style.display = 'none';
   _installPrompt = null;
 });
 </script>
